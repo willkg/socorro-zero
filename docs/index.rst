@@ -11,6 +11,7 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+   vagrant_dev
 
 
 Indices and tables
