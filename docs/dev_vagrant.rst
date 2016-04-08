@@ -57,12 +57,6 @@ Setup
 
       make dev
 
-#. Create the ``breakpad_rw`` role::
-
-      sudo -u postgres psql template1 -c "create user breakpad_rw with encrypted password 'aPassword' superuser"
-
-   .. todo:: We should probably do this in the vagrant provisioning.
-
 #. Edit ``config/alembic.ini``. You want to change the ``database_username`` to
    ``breakpad_rw``.
 

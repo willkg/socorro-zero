@@ -1,2 +1,7 @@
 docs/_build/
 *~
+
+/socorro-infra/
+/socorro/
+/socorrolib/
+/socorro-collector/
