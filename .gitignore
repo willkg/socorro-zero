@@ -1,5 +1,6 @@
 docs/_build/
 *~
+.vagrant/
 
 /socorro-infra/
 /socorro/
