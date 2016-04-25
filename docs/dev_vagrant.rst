@@ -35,20 +35,6 @@ Setup
 
       vagrant ssh
 
-#. Nix the firewall::
-
-      sudo -s
-      systemctl disable firewalld
-      systemctl stop firewalld
-
-   CentOS 7 has a firewall enabled, so nothing listening to ports will ever get
-   incoming connections. That'll stop and disable the firewall from running in
-   the future.
-
-   .. todo::
-
-      We should add this to the Vagrant provisioning.
-
 #. Then cd to the socorro directory::
 
       cd socorro

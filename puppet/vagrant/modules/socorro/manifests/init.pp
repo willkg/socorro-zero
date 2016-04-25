@@ -6,6 +6,10 @@ class socorro::vagrant {
       ensure => stopped,
       enable => false;
 
+    'firewalld':
+      ensure => stopped,
+      enable => false;
+
     'sshd':
       ensure  => running,
       enable  => true;

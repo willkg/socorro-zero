@@ -18,12 +18,6 @@ Vagrant.configure("2") do |config|
 
   config.vm.provision :shell, inline: "if [ ! $(grep single-request-reopen /etc/sysconfig/network) ]; then echo RES_OPTIONS=single-request-reopen >> /etc/sysconfig/network && service network restart; fi"
 
-  # Shut off the CentOS firewall
-  # FIXME: Fix this to check to see if it is enabled first.
-  config.vm.provision :shell, inline: "systemctl disable firewalld"
-  # FIXME: Fix this to check to see if it is running first.
-  config.vm.provision :shell, inline: "systemctl stop firewalld"
-
   config.vm.provision :puppet do |puppet|
     puppet.environment_path = "puppet"
     puppet.environment = "vagrant"
