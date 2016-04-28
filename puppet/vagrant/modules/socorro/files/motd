@@ -1,11 +1,20 @@
-Welcome to the Socorro vagrant environment!
+Welcome to the Socorro Zero vagrant development environment and bargain
+emporium!
 
 Documentation for using this environment can be found at:
 
-http://socorro.readthedocs.org/
+    https://github.com/willkg/socorro-zero
 
-Dev docs are at:
+Dev docs for Socorro are at:
 
-http://socorro.readthedocs.org/en/latest/development/
+    http://socorro.readthedocs.org/en/latest/development/
 
-If you need help, we're on #breakpad on irc.mozilla.org.
+If you're starting this vm for the first time, you'll probably want to do this:
+
+    $ cd zero
+    $ ./initialize.sh
+
+That'll do all kinds of setup. At the end, you should have a working Socorro in
+your dev environment.
+
+If you need help, willkg hangs out on #breakpad on irc.mozilla.org.
