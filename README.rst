@@ -50,3 +50,15 @@ To set this up
 
    1. create a vagrant environment for development
    2. FIXME
+
+5. Log into the vm::
+
+       $ vagrant ssh
+
+6. Initialize the development environment::
+
+       $ cd zero/
+       $ ./initialize.sh
+
+
+At this point, you should have a functioning development environment.
