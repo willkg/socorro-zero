@@ -78,6 +78,7 @@ class socorro::vagrant {
 
   package {
     [
+      'augeas',
       'epel-release',
       'gcc-c++',
       'git',
