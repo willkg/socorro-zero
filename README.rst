@@ -2,23 +2,27 @@
 README
 ======
 
-My super secret Socorro development container machine.
+My socorro-zero development environment plus notes.
 
 This has the following:
 
-1. my notes on socorro so I don't forget.
-2. a Vagrant super environment that makes it easy to work on the various
+1. some notes on socorro so I don't forget
+2. a Vagrant -zero environment that makes it easy/easier to work on the various
    bits that are in different repositories
 3. all my opinions codified in 21-carat GOLD
 
+
 :author: Will Kahn-Greene and a gaggle of goblins
+:issues: https://github.com/willkg/socorro-zero
 
 .. Warning::
 
-   This is wrong, obsolete, old, overbearing, over-engineered, under-thought,
-   unofficial and disasterous to your career.
+   It's possible that this is wrong, obsolete, old, overbearing,
+   over-engineered, under-thought, unofficial and disasterous to your
+   career.
 
-Having said that, if you have problems, let me know.
+Having said that, if it's helpful, let me know. If you have problems,
+write up an issue.
 
 
 To set this up
@@ -62,3 +66,15 @@ To set this up
 
 
 At this point, you should have a functioning development environment.
+
+
+Zero? What?
+===========
+
+This isn't a single Python package, but rather a development environment
+with a set of configurations and opinions codified in it. The idea is
+that you set it up and then you can do the work you need to do.
+
+The idea is based on the ideas in this blog post:
+
+http://ramblings.timgolden.me.uk/2016/04/14/network-zero/
