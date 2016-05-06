@@ -1,5 +1,13 @@
 #!/bin/bash
 
+# set -o errexit
+set -x
+
+ROOTDIR="$(pwd)"
+
+# FIXME: Check for an active virtualenv and activate it if it's not currently
+# activated.
+
 # This cleans everything up so you're back to a mostly pristine environment that
 # you can run "./initialize.sh" in.
 
@@ -7,22 +15,20 @@
 # FIXME: This throws an error saying "breakpad" doesn't exist after successfully
 # dropping the db like we asked it to. I have no idea why it throws an error
 # afterwards.
-pushd socorro
+cd "${ROOTDIR}/socorro"
 ./scripts/socorro setupdb --database_name=breakpad --dropdb
 echo "Note: This threw an error saying the database doesn't exist--that's ok."
-popd
 
 # Remove elasticsearch indexes
 # FIXME: Implement this
 
 # Remove all .pyc files in socorro/
-pushd socorro
+cd "${ROOTDIR}/socorro"
 find . -name "*.pyc" -exec 'rm' '{}' ';'
-popd
 
 # Deactivate the virtual environment.
-# FIXME: Maybe we should check to see if we're in a virtual environment first?
 deactivate
 
 # Last, remove the socorro virtual environment
+cd "${ROOTDIR}"
 rm -rf socorro/socorro-virtualenv/
