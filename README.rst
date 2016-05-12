@@ -102,6 +102,15 @@ To set this up with Docker (doesn't work, yet)
 
 At this point, you should have a functioning development environment.
 
+Running Charon::
+
+    $ docker-compose run charon
+
+Running Charon tests::
+
+    $ docker-compose run charon py.test [ARGS]
+
+
 FIXME: Explain how to use it.
 
 
