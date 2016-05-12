@@ -25,8 +25,8 @@ Having said that, if it's helpful, let me know. If you have problems,
 write up an issue.
 
 
-To set this up
-==============
+To set this up with Vagrant
+===========================
 
 1. Clone this repo::
 
@@ -66,6 +66,43 @@ To set this up
 
 
 At this point, you should have a functioning development environment.
+
+
+To set this up with Docker (doesn't work, yet)
+==============================================
+
+1. Clone this repo::
+
+       $ git clone https://github.com/willkg/socorro-zero.git
+
+2. Change directories::
+
+       $ cd socorro-zero
+
+3. Clone the other repositories::
+
+       $ git clone https://github.com/mozilla/socorro
+       $ git clone https://github.com/mozilla/socorrolib
+       ...
+
+   For each of these repositories, do whatever it is you need to do to
+   get the remotes set up for your needs.
+
+4. FIXME (not implemented, yet) Then go back to the socorro-zero root directory
+   and run::
+
+       $ docker-compose run socorro initialize.sh
+
+
+   This will do the following:
+
+   1. create all the docker containers
+   2. run ``initialize.sh`` in the socorro one
+
+
+At this point, you should have a functioning development environment.
+
+FIXME: Explain how to use it.
 
 
 Zero? What?
