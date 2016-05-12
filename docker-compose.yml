@@ -1,0 +1,15 @@
+# Requires docker 1.10.0+ and docker-compose 1.6.0+.
+version: '2'
+services:
+  charon:
+    build:
+      context: .
+      dockerfile: Dockerfile.charon
+    volumes:
+      - ./charon:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONDONTWRITEBYTECODE=1
+      - DEBUG=True
+    command: ./run_gunicorn.sh
