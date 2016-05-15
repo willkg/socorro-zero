@@ -1,12 +1,12 @@
 # Requires docker 1.10.0+ and docker-compose 1.6.0+.
 version: '2'
 services:
-  charon:
+  antenna:
     build:
       context: .
-      dockerfile: Dockerfile.charon
+      dockerfile: Dockerfile.antenna
     volumes:
-      - ./charon:/app
+      - ./antenna:/app
     ports:
       - "8000:8000"
     environment:

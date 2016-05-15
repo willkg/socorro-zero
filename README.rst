@@ -104,11 +104,11 @@ At this point, you should have a functioning development environment.
 
 Running Charon::
 
-    $ docker-compose run charon
+    $ docker-compose run antenna
 
 Running Charon tests::
 
-    $ docker-compose run charon py.test [ARGS]
+    $ docker-compose run antenna py.test [ARGS]
 
 
 FIXME: Explain how to use it.
