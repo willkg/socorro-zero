@@ -1,12 +1,12 @@
 # Requires docker 1.10.0+ and docker-compose 1.6.0+.
 version: '2'
 services:
-  antenna:
+  collector:
     build:
       context: .
-      dockerfile: Dockerfile.antenna
+      dockerfile: Dockerfile.collector
     volumes:
-      - ./antenna:/app
+      - ./collector:/app
     ports:
       - "8000:8000"
     environment:
