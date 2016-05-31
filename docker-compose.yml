@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile.collector
     volumes:
-      - ./collector:/app
+      - ./socorro-collector:/app
     ports:
       - "8000:8000"
     environment:
