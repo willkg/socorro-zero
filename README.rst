@@ -102,14 +102,25 @@ To set this up with Docker (doesn't work, yet)
 
 At this point, you should have a functioning development environment.
 
-Running Charon::
 
-    $ docker-compose run antenna
+Collector
+---------
 
-Running Charon tests::
+Build::
 
-    $ docker-compose run antenna py.test [ARGS]
+    $ docker-compose build collector
 
+Configure:
+
+FIXME
+
+Run::
+
+    $ docker-compose run collector ./run_gunicorn.sh
+
+Run tests::
+
+    $ docker-compose run antenna nosetests [ARGS]
 
 FIXME: Explain how to use it.
 
