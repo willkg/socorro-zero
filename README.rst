@@ -120,7 +120,7 @@ Run::
 
 Run tests::
 
-    $ docker-compose run antenna nosetests [ARGS]
+    $ docker-compose run antenna ./scripts/test.sh [ARGS]
 
 FIXME: Explain how to use it.
 
