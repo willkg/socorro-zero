@@ -16,10 +16,11 @@ Architecture notes:
    arch_middleware
    arch_webapp
 
-Sanity notes:
+Development related notes:
 
 .. toctree::
 
+   breakpad_reporting
    dev_vagrant
 
 
