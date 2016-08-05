@@ -1,15 +1,58 @@
 # Requires docker 1.10.0+ and docker-compose 1.6.0+.
 version: '2'
 services:
-  collector:
+  socorrobase:
     build:
       context: .
-      dockerfile: Dockerfile.collector
+      dockerfile: XXX
+    env_file: config/prod.env
     volumes:
-      - ./socorro-collector:/app
+      - .:/app
+      - crashes:/crashes
+
+  web:
+    extends:
+      service: appbase
     ports:
       - "8000:8000"
+    command: ./scripts/run_web.sh
+
+  crashmover:
+    extends:
+      service: appbase
+    links:
+      - rabbitmq
+      - fakes3
+    command: ./scripts/run_crashmover.sh
+
+
+  # External service containers
+
+  statsd:
+    # https://hub.docker.com/r/hopsoft/graphite-statsd/
+    image: hopsoft/graphite-statsd
+    ports:
+      - "80:80"
+      - "2003-2004:2003-2004"
+      - "2023-2024:2023-2024"
+      - "8125:8125/udp"
+      - "8126:8126"
+
+  rabbitmq:
+    # https://hub.docker.com/_/rabbitmq/
+    # FIXME: pin this to the version tag of rabbitmq we're using in -stage
+    # and -prod
+    image: rabbitmq
     environment:
-      - PYTHONDONTWRITEBYTECODE=1
-      - DEBUG=True
-    command: ./run_gunicorn.sh
+      - RABBITMQ_DEFAULT_USER=rabbituser
+      - RABBITMQ_DEFAULT_PASS=rabbitpwd
+      - RABBITMQ_DEFAULT_VHOST=rabbitvhost
+
+  fakes3:
+    # https://hub.docker.com/r/lphoward/fake-s3/
+    image: lphoward/fake-s3
+    ports:
+      - "4569:4569"
+
+volumes:
+  crashes:

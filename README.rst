@@ -7,8 +7,9 @@ My socorro-zero development environment plus notes.
 This has the following:
 
 1. some notes on socorro so I don't forget
-2. a Vagrant -zero environment that makes it easy/easier to work on the various
-   bits that are in different repositories
+2. a Docker-based -zero environment that makes it easy/easier to work on the
+   various parts in different repositories as well as the integrated whole in
+   various configurations
 3. all my opinions codified in 21-carat GOLD
 
 
@@ -25,104 +26,32 @@ Having said that, if it's helpful, let me know. If you have problems,
 write up an issue.
 
 
-To set this up with Vagrant
-===========================
+To set this up with Docker
+==========================
 
-1. Clone this repo::
+1. Install Docker 1.10.0+ and docker-compose 1.6.0+.
 
-       $ git clone https://github.com/willkg/socorro-zero.git
+2. Clone this repo::
 
-2. Change directories::
+     $ git clone https://github.com/willkg/socorro-zero.git
 
-       $ cd socorro-zero
+   We're going to call that directory the repository root.
 
-3. Clone the other repositories::
+3. Clone the other repositories as subdirectories of the repository root::
 
-       $ git clone https://github.com/mozilla/socorro
-       $ git clone https://github.com/mozilla/socorrolib
-       ...
+     $ git clone https://github.com/mozilla/socorro
+     $ git clone https://github.com/mozilla/socorrolib
+     ...
 
-   For each of these repositories, do whatever it is you need to do to
-   get the remotes set up for your needs.
+   For each of these repositories, do whatever it is you need to do to get the
+   remotes set up for your needs.
 
-4. Then go back to the socorro-zero root directory and run::
+4. Then go back to the repository root and run::
 
-       $ vagrant up
+     FIXME
 
-
-   This will do the following:
-
-   1. create a vagrant environment for development
-   2. FIXME
-
-5. Log into the vm::
-
-       $ vagrant ssh
-
-6. Initialize the development environment::
-
-       $ cd zero/
-       $ ./initialize.sh
-
-
-At this point, you should have a functioning development environment.
-
-
-To set this up with Docker (doesn't work, yet)
-==============================================
-
-1. Clone this repo::
-
-       $ git clone https://github.com/willkg/socorro-zero.git
-
-2. Change directories::
-
-       $ cd socorro-zero
-
-3. Clone the other repositories::
-
-       $ git clone https://github.com/mozilla/socorro
-       $ git clone https://github.com/mozilla/socorrolib
-       ...
-
-   For each of these repositories, do whatever it is you need to do to
-   get the remotes set up for your needs.
-
-4. FIXME (not implemented, yet) Then go back to the socorro-zero root directory
-   and run::
-
-       $ docker-compose run socorro initialize.sh
-
-
-   This will do the following:
-
-   1. create all the docker containers
-   2. run ``initialize.sh`` in the socorro one
-
-
-At this point, you should have a functioning development environment.
-
-
-Collector
----------
-
-Build::
-
-    $ docker-compose build collector
-
-Configure:
-
-FIXME
-
-Run::
-
-    $ docker-compose run collector ./run_gunicorn.sh
-
-Run tests::
-
-    $ docker-compose run antenna ./scripts/test.sh [ARGS]
-
-FIXME: Explain how to use it.
+   This will create all the required docker containers and launch it all with a
+   configuration that's like Mozilla crash-stats production.
 
 
 Zero? What?
