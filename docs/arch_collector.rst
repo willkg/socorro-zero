@@ -14,7 +14,7 @@ Collector requirements
    working--lots of 9s.
 2. Get crash data to S3 as fast and reliably as possible.
 3. Scale horizontally: We have multiple collector nodes behind an ELB.
-4. Handle crash reports ~500k in size. (See crash report size analysissection.)
+4. Handle crash reports ~500k in size. (See crash report size analysis section.)
 
 Soft requirements (it might be possible to do this differently):
 
