@@ -76,6 +76,9 @@ Web app
 
 The web app part of the collector uses the web.py WSGI application framework.
 
+In production, it uses the following prefixes in consul: ``socorro/common``
+and ``socorro/collector``.
+
 It handles incoming HTTP POST requests to the ``/submit`` endpoint.
 
 Breakpad crash data is submitted as ``multipart/form-data``.
@@ -135,8 +138,12 @@ As of August 5th, 2016, the throttler rules are something like::
 Crashmover process
 ------------------
 
-The crashmover process monitors the local filesystem for new crashes. For each
-crash, it does the following:
+The crashmover process monitors the local filesystem for new crashes.
+
+In production, it uses the following prefixes in consul: ``socorro/common`` and
+``socorro/crashmover``.
+
+For each crash, it does the following:
 
 1. saves the crash to S3 as a "raw_crash"
 2. (ACCEPT-only) tosses the crash id in the "socorro.normal" rabbitmq queue for
