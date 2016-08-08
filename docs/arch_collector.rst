@@ -14,7 +14,7 @@ Collector requirements
    working--lots of 9s.
 2. Get crash data to S3 as fast and reliably as possible.
 3. Scale horizontally: We have multiple collector nodes behind an ELB.
-4. Handle crashes of size XXX.
+4. Handle crash reports ~500k in size. (See crash report size analysissection.)
 
 Soft requirements (it might be possible to do this differently):
 
@@ -22,6 +22,43 @@ Soft requirements (it might be possible to do this differently):
    overwhelm the processor.
 2. We need to feed our -stage system with real crash data for testing and
    development.
+
+
+Crash report size analysis
+==========================
+
+From https://bugzilla.mozilla.org/show_bug.cgi?id=1271790#c3
+
+On May 16th, 2016, Adrian wrote:
+
+    I downloaded 10,000 processed crashes from our stage S3 onto my file system
+    on May 12. Hopefully that's a big enough set, because it took a full night
+    to download all that data. :)
+
+    Note that documents include sensitive data and the full json dump. Raw crash
+    data is not included.
+
+    Here's an analysis of the size of those documents (numbers in kilobytes)::
+
+        count    10000
+        mean       486
+        std       1170
+        min          1
+        25%        177
+        50%        250
+        75%        348
+        max      18944
+
+    Then, to find the average number of processed crashes per week, I used this
+    query:
+    https://crash-stats.mozilla.com/api/SuperSearch/?_results_number=0&_facets=_histogram.date&_histogram_interval.date=1w&date=%3E2016-01-04&date=%3C2016-05-16
+    (count of documents per week between the beginning of the year and now).
+    Using the above average document size, I got those results::
+
+        Average number of documents per week: 2,533,611
+        Estimated number of documents for 26 weeks: 65,873,886
+        Estimated size of 1 week of data: 1,174 Gb
+        Estimated size of 26 weeks of data: 29 Tb
 
 
 Collector architecture
