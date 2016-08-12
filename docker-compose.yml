@@ -4,29 +4,46 @@ services:
   socorrobase:
     build:
       context: .
-      dockerfile: XXX
-    env_file: config/prod.env
+      dockerfile: Dockerfile
     volumes:
       - .:/app
-      - crashes:/crashes
 
-  web:
+  # ------------------------------------------------------
+  # THE COLLECTOR
+  # ------------------------------------------------------
+
+  collector:
+    # Runs the collector WSGI app
+    env_file: config/collector_prod.env
     extends:
-      service: appbase
+      service: socorrobase
+    links:
+      - statsd
+    expose:
+      - "8000"
     ports:
       - "8000:8000"
-    command: ./scripts/run_web.sh
+    volumes:
+      - crashes:/crashes
+    command: ./bin/run_collector.sh
 
   crashmover:
+    # Runs the collector crashmover app
+    env_file: config/collector_prod.env
     extends:
-      service: appbase
+      service: socorrobase
     links:
+      - statsd
       - rabbitmq
       - fakes3
-    command: ./scripts/run_crashmover.sh
+    volumes:
+      - crashes:/crashes
+    command: /app/soccor/scripts/run_crashmover.sh
 
 
-  # External service containers
+  # ------------------------------------------------------
+  # External services
+  # ------------------------------------------------------
 
   statsd:
     # https://hub.docker.com/r/hopsoft/graphite-statsd/
