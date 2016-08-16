@@ -12,8 +12,8 @@ services:
   # THE COLLECTOR
   # ------------------------------------------------------
 
+  # Runs the collector WSGI app
   collector:
-    # Runs the collector WSGI app
     env_file: config/collector_prod.env
     extends:
       service: socorrobase
@@ -27,18 +27,19 @@ services:
       - crashes:/crashes
     command: ./bin/run_collector.sh
 
+  # Runs the collector crashmover app
   crashmover:
-    # Runs the collector crashmover app
     env_file: config/collector_prod.env
     extends:
       service: socorrobase
     links:
+      - collector
       - statsd
       - rabbitmq
       - fakes3
     volumes:
       - crashes:/crashes
-    command: /app/soccor/scripts/run_crashmover.sh
+    command: ./bin/run_crashmover.sh
 
 
   # ------------------------------------------------------
