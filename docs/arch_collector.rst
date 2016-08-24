@@ -6,6 +6,8 @@ This document covers the configuration and workings of the part of Socorro known
 as "the collector" as it's configured to run on Mozilla's -stage and -prod
 environments.
 
+Unofficial sequel to The Fast and the Furious.
+
 
 Collector requirements
 ======================
