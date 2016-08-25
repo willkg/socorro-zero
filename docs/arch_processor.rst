@@ -152,6 +152,13 @@ processed_transform
         "socorro.processor.signature_utilities.SigTrunc, "
     ],
 
+This generates the signature. Signature generation currently relies on regexes
+generated from files checked into GitHub as well as the sentinels file which
+helps us establish the top-most frame of the interesting part of the stack
+trace. Those files and instructions are here:
+
+https://github.com/mozilla/socorro/tree/master/socorro/siglists
+
 
 support_classifiers
 ~~~~~~~~~~~~~~~~~~~
