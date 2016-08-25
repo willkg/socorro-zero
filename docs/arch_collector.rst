@@ -29,7 +29,33 @@ Soft requirements (it might be possible to do this differently):
 Crash report size analysis
 ==========================
 
-FIXME: Figure this out.
+This is hand-wavey for now since these numbers are from our -stage environment
+on crash reports which are siphoned from our -prod environment. Because of how
+this mechanism works, this data has the following caveats:
+
+1. it's a 10% sample of crash reports accepted by -prod
+2. it doesn't differentiate between crash reports that come in compressed vs.
+   uncompressed
+
+Further, since I put the metrics in on August 24th, this data only covers a 12
+hour period.
+
+FIXME: Are these appropriate manipulations of the data we're collecting in
+datadog?
+
+FIXME: Acquire new numbers covering at least a week's worth of data.
+
+====================================  =======
+title                                 amt
+====================================  =======
+max of max crash report size          3.2mb
+avg of 95% of crash reports size      1.2mb
+avg of median of crash report size    384kb
+====================================  =======
+
+Note: The socorro-collector.conf nginx conf file limits HTTP body data to 20mb
+maximum. Thus the maximum crash report size would be whatever we can compress
+into 20mb.
 
 
 Collector architecture
@@ -58,6 +84,9 @@ It can be gzipped.
 
 It can contain a ``Throttleable=1`` parameter which indicates that the crash
 should not be throttled.
+
+The nginx ``socorro-collector.conf`` config file in the socorro-infra repository
+restricts the maximum body size to 20mb.
 
 Incoming HTTP POST requests are handled in this way:
 
