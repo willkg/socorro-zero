@@ -64,8 +64,8 @@ Collector architecture
 Each web node runs three things:
 
 1. nginx
-2. gunicorn which contains the WSGI application (web app)
-3. crashmover process
+2. uwsgi which manages the WSGI application (socorro-collector service)
+3. crashmover process (socorro-crashmover service)
 
 
 Web app
