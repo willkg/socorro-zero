@@ -14,21 +14,22 @@ Collector requirements
 
 Hard requirements:
 
-1. Reliable: We shouldn't drop crashes and the HTTP endpoint should be
+1. **Reliable**: We shouldn't drop crashes and the HTTP endpoint should be
    working--lots of 9s.
-2. Handle crash reports up to 3mb in size with enough clearance to continue
+2. **Handle crash reports up to 3mb in size** with enough clearance to continue
    growing. (See crash report size analysis section.)
-3. Get crash data to S3 as fast and reliably as possible.
-4. Scale horizontally: We have multiple collector nodes behind an ELB.
-
-Soft requirements that we're currently doing, but might be able to do
-differently:
-
-1. We need to throttle incoming crashes so as to sample incoming Firefox desktop
+3. **Get crash data to S3** as fast and reliably as possible.
+4. **Scale horizontally**: We have multiple collector nodes behind an ELB.
+5. **Notify processor** about crash reports to process.
+6. **Throttle incoming crash reports** so as to sample incoming Firefox desktop
    crash reports so we don't overwhelm the processor as well as drop junk data
-   without further processing.
-2. We need to feed our -stage system with real crash data for testing and
-   development.
+   without further processing. [#]_
+7. **Feed our -stage system** with real crash data for testing and development. [#]_
+
+.. [#] Telemetry's edge doesn't do this--they do it in later processing. Maybe
+       we could do that, too?
+
+.. [#] There are probably other ways to feed our -stage system with real data.
 
 
 Crash report size analysis
