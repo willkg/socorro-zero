@@ -12,16 +12,21 @@ Unofficial sequel to The Fast and the Furious.
 Collector requirements
 ======================
 
+Hard requirements:
+
 1. Reliable: We shouldn't drop crashes and the HTTP endpoint should be
    working--lots of 9s.
-2. Get crash data to S3 as fast and reliably as possible.
-3. Scale horizontally: We have multiple collector nodes behind an ELB.
-4. Handle crash reports XXX in size. (See crash report size analysis section.)
+2. Handle crash reports up to 3mb in size with enough clearance to continue
+   growing. (See crash report size analysis section.)
+3. Get crash data to S3 as fast and reliably as possible.
+4. Scale horizontally: We have multiple collector nodes behind an ELB.
 
-Soft requirements (it might be possible to do this differently):
+Soft requirements that we're currently doing, but might be able to do
+differently:
 
-1. We need to throttle incoming crashes to get rid of junk data and so we don't
-   overwhelm the processor.
+1. We need to throttle incoming crashes so as to sample incoming Firefox desktop
+   crash reports so we don't overwhelm the processor as well as drop junk data
+   without further processing.
 2. We need to feed our -stage system with real crash data for testing and
    development.
 
@@ -37,25 +42,19 @@ this mechanism works, this data has the following caveats:
 2. it doesn't differentiate between crash reports that come in compressed vs.
    uncompressed
 
-Further, since I put the metrics in on August 24th, this data only covers a 12
-hour period.
+Further, since I put the metrics in on August 24th, this data only covers a
+couple of days.
 
-FIXME: Are these appropriate manipulations of the data we're collecting in
-datadog?
+==============  =======
+title           amt
+==============  =======
+max             1.34mb
+95 percentile   1.23mb
+avg             574kb
+median          393kb
+==============  =======
 
 FIXME: Acquire new numbers covering at least a week's worth of data.
-
-====================================  =======
-title                                 amt
-====================================  =======
-max of max crash report size          3.2mb
-avg of 95% of crash reports size      1.2mb
-avg of median of crash report size    384kb
-====================================  =======
-
-Note: The socorro-collector.conf nginx conf file limits HTTP body data to 20mb
-maximum. Thus the maximum crash report size would be whatever we can compress
-into 20mb.
 
 
 Collector architecture
@@ -158,15 +157,19 @@ Architectural things to note
 
 1. nginx can't decompress POST data, so we have to do it in Python-land
 
-2. We want to return a crashid and end the HTTP connection as quickly as
+2. The ``socorro-collector.conf`` nginx conf file limits HTTP body data to
+   20mb maximum. Thus the maximum crash report size would be whatever we can
+   compress into 20mb.
+
+3. We want to return a crashid and end the HTTP connection as quickly as
    possible. Because of this, we can't wait to send the data to S3 and RabbitMQ.
    Thus we store the crash on disk and have the separate crashmover process deal
    with it.
 
-3. Storing the crash on disk allows us to manually go in and send crashes along
+4. Storing the crash on disk allows us to manually go in and send crashes along
    if the crashmover process ever dies and can't come back up.
 
-4. We want to be able to get a list of all crashes that came in on a specific
+5. We want to be able to get a list of all crashes that came in on a specific
    day. Because of that, we use the following pseudo-filename schema::
 
      {prefix}/v2/{name_of_thing}/{entropy}/{date}/{id}
@@ -178,7 +181,7 @@ Architectural things to note
    where "entropy" is the first three characters of the id and "date" is the last
    six characters.
 
-5. We siphon 10% of crashes submitted to the production system to the stage
+6. We siphon 10% of crashes submitted to the production system to the stage
    system. The way we do this is by having the production collector crashmover
    submit 10% of incoming crashes to the ``socorro.stag esubmitter`` rabbitmq
    queue.
@@ -186,5 +189,5 @@ Architectural things to note
    A magical fairy named "stage submitter" watches that queue, pulls the raw
    crash data from S3 and HTTP POSTs it to the stage collector.
 
-6. We remove ``\00`` characters from incoming crash data because it hoses later
+7. We remove ``\00`` characters from incoming crash data because it hoses later
    processing. Theoretically, there shouldn't be any in there anyhow.
