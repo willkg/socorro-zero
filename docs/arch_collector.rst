@@ -12,19 +12,26 @@ Unofficial sequel to The Fast and the Furious.
 Collector requirements
 ======================
 
-Hard requirements:
+Hand-wavey requirements:
 
 1. **Reliable**: We shouldn't drop crashes and the HTTP endpoint should be
    working--lots of 9s.
-2. **Handle crash reports up to 3mb in size** with enough clearance to continue
+2. **Scale horizontally**: We have multiple collector nodes behind an ELB.
+3. **Low maintenance**: Should run without kicking.
+
+Hard requirements:
+
+1. **Handle crash reports up to 3mb in size** with enough clearance to continue
    growing. (See crash report size analysis section.)
-3. **Get crash data to S3** as fast and reliably as possible.
-4. **Scale horizontally**: We have multiple collector nodes behind an ELB.
-5. **Notify processor** about crash reports to process.
-6. **Throttle incoming crash reports** so as to sample incoming Firefox desktop
+2. **Generate crash id** which gets returned to the client and also gets added
+   to the raw crash.
+3. **Save raw crash to S3**
+4. **Notify processor** about crash reports to process (currently done with
+   RabbitMQ).
+5. **Throttle incoming crash reports** so as to sample incoming Firefox desktop
    crash reports so we don't overwhelm the processor as well as drop junk data
    without further processing. [#]_
-7. **Feed our -stage system** with real crash data for testing and development. [#]_
+6. **Feed our -stage system** with real crash data for testing and development. [#]_
 
 .. [#] Telemetry's edge doesn't do this--they do it in later processing. Maybe
        we could do that, too?
