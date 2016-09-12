@@ -69,12 +69,14 @@ prioritize items in the priority queue without starving the other two queues.
 
 For each crash, it sends it through the fetch/transform/save steps.
 
-After successfully processing a crash id, the ``FTSWSNCSA`` will call into
-``RabbitMQCrashStorage`` which will remove the crash id from the queue. If
-something happens during processing and this step doesn't occur, then the item
-stays in the queue.
-
-FIXME: ^^^ Is that correct?
+After a crash is processed, the same thread that plucked the crash from the
+crash iterator calls the ``finished_func`` of the resource behind the iterator.
+For RMQ, that function acknowledges that the item in the queue has been
+successfully processed. Depending on how RMQ is configured, if a item in the
+queue is has not been ack'd within a configured timeout, the queued item is
+offered again. There is some ambiguity in the behavior of RMQ at this point. It
+is unclear if the item is subsequently offered to any random RMQ client or if it
+is only offered to the same client again.
 
 
 Fetch step
@@ -87,7 +89,23 @@ For each crash id, the processor fetches the raw crash from S3 using the
 Fetching the crash happens in two stages: first the raw crash is acquired then
 the related dumps.
 
-FIXME: What happens if the crash isn't there?
+If the requested crash id is not found in storage, that storage is responsible
+for raising the ``CrashIDNotFound`` exception. On receiving that exception, the
+FTS framework will reject the ID, logging the exception, acknowledges the item
+in the queue and then waiting for the next queued item.
+
+.. Note::
+
+   There is an implementation of a crash store called ``FallbackCrashStorage``
+   that can have primary and secondary storage implementations. If the primary
+   storage raises the ``CrashIDNotFound`` exception, then the
+   ``FallbackCrashStorage`` will intercept the exception and try the secondary
+   storage. The ``CrashIDNotFound`` will only propagate outward if both storage
+   systems fail to find the ID. This is a useful class to use if migrating from
+   one primary crash storage system to another. The newer system can be
+   configured as primary, while the older system can be the secondary.
+
+   We don't use this at Mozilla.
 
 
 Transform step
