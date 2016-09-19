@@ -14,7 +14,7 @@ Collector
 
 Is the collector web process handling incoming crashes?
 
-    Log into collector node and watch the collector logs for errors.
+    * Log into collector node and watch the collector logs for errors.
 
 Is the collector crashmover process saving crashes to S3? ES? Postgres?
 RabbitMQ?
@@ -26,7 +26,9 @@ RabbitMQ?
       :prod: it's on the Socorro Prod dashboard
       :stage: ?
   
-    * Submit a crash. Verify raw crash made it to S3.
+    * Submit a crash. Verify raw crash made it to S3. See these
+      docs:
+      http://socorro.readthedocs.io/en/latest/configuring-socorro.html?highlight=curl#test-collection-and-processing
    
 
 Processor
