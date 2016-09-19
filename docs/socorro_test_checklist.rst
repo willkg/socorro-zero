@@ -23,7 +23,7 @@ RabbitMQ?
     * Check datadog ``crashmover.save_raw_crash`` for the appropriate
       environment.
 
-      :prod: Socorro Prod dashboard
+      :prod: it's on the Socorro Prod dashboard
       :stage: ?
   
     * Submit a crash. Verify raw crash made it to S3.
