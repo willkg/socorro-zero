@@ -77,6 +77,9 @@ Is the webapp throwing errors?
     * Log into webapp node and check logs for errors.
     * Run QA Selenium tests.
 
+      :prod: ``webqatestbot build socorro.prod.saucelabs``
+      :stage: ``webqatestbot build socorro.stage.saucelabs``
+
 Can we log into the webapp?
 
 Is super search working?
