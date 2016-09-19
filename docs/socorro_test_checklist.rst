@@ -66,6 +66,7 @@ Is the webapp throwing errors?
 
     * Check sentry for errors
     * Log into webapp node and check logs for errors.
+    * Run QA Selenium tests.
 
 Can we log into the webapp?
 
