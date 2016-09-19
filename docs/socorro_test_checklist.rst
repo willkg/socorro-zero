@@ -64,6 +64,13 @@ Webapp
 
 Is the webapp up?
 
+    * Use a browser and check the healthcheck.
+
+      :prod: https://crash-stats.mozilla.com/monitoring/healthcheck/
+      :stage: https://crash-stats.allizom.org/monitoring/healthcheck/
+
+      It should say "ok: true".
+
 Is the webapp throwing errors?
 
     * Check sentry for errors
@@ -72,13 +79,25 @@ Is the webapp throwing errors?
 
 Can we log into the webapp?
 
+Is super search working?
+
+    * Click "Super Search" and make a search that is not likely to be cached.
+      For example, filter on a specific date.
+
 FIXME: What else do we want to verify?
 
 
 Crontabber
 ==========
 
-FIXME: What can we look at here?
+Is crontabber running?
+
+    * Check healthcheck endpoint.
+
+      :prod: https://crash-stats.mozilla.com/monitoring/crontabber/
+      :stage: https://crash-stats.allizom.org/monitoring/crontabber/
+
+      It should say ALLGOOD.
 
 
 Stage crashmover
