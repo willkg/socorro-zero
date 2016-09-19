@@ -20,6 +20,9 @@ Is the collector crashmover process saving crashes to S3? ES? Postgres?
 RabbitMQ?
 
     * Log into collector node and watch the crashmover logs for errors.
+
+      FIXME: List log paths.
+
     * Check datadog ``crashmover.save_raw_crash`` for the appropriate
       environment.
 
@@ -37,6 +40,9 @@ Processor
 Is the processor process running?
 
     * Log into processor node and watch the processor logs for errors.
+
+      FIXME: List log paths.
+
     * Check datadog ``processor.save_raw_and_processed`` for appropriate
       environment.
 
@@ -75,12 +81,18 @@ Is the webapp throwing errors?
 
     * Check sentry for errors
     * Log into webapp node and check logs for errors.
+
+      FIXME: List log paths.
+
     * Run QA Selenium tests.
 
       :prod: ``webqatestbot build socorro.prod.saucelabs``
       :stage: ``webqatestbot build socorro.stage.saucelabs``
 
 Can we log into the webapp?
+
+    * Log in.
+    * FIXME: What is behind a login that we need to verify is working?
 
 Is super search working?
 
