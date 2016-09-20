@@ -54,7 +54,9 @@ Is the processor saving to S3?
 
 Is the processor saving to ES?
 
-    * FIXME: Check datadog?
+    * Check datadog
+      ``processor.es.ESCrashStorageNoStackwalkerOutput.save_raw_and_processed.avg``
+      on the Socorro Prod Perf dashboard.
 
 Is the processor saving to Postgres?
 
@@ -91,21 +93,25 @@ Is the webapp throwing errors?
 
 Can we log into the webapp?
 
-    * Log in.
-    * FIXME: What is behind a login that we need to verify is working?
+    * Log in and check the profile page.
+    * FIXME: Is there anything behind the login that's important to check?
 
 Is super search working?
 
     * Click "Super Search" and make a search that is not likely to be cached.
       For example, filter on a specific date.
 
-FIXME: What else do we want to verify?
+Top Crashers Signature report and Report index
+
+    * Browse to Top Crashers, browse to Signature report (by clicking a
+      signature), browse to Report index (by clicking a crash id) to verify
+      these work.
 
 
 Crontabber
 ==========
 
-Is crontabber running?
+Is crontabber working?
 
     * Check healthcheck endpoint.
 
@@ -113,6 +119,11 @@ Is crontabber running?
       :stage: https://crash-stats.allizom.org/monitoring/crontabber/
 
       It should say ALLGOOD.
+
+      There's a more comprehensive UI:
+
+      :prod: https://crash-stats.mozilla.com/crontabber-state/
+      :stage: https://crash-stats.allizom.org/crontabber-state/
 
 
 Stage crashmover
