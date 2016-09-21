@@ -163,3 +163,26 @@ development instance. There are a few options:
    https://developer.mozilla.org/en-US/docs/Environment_variables_affecting_crash_reporting
 
    Particularly ``MOZ_CRASHREPORTER_URL``.
+
+4. On Linux, you can crash processes using ``kill``::
+
+       kill -ABRT $(pidof firefox)
+
+
+You can capture a raw HTTP POST this way:
+
+1. Run ``nc -l localhost 8000 > http_post.raw`` in one terminal
+
+2. Run ``MOZ_CRASHREPORTER_URL=http://localhost:8000/submit firefox`` in a second terminal
+
+3. Run ``ps -aef``, find the firefox process id and then do ``kill -ABRT <PID>`` in a
+   third terminal
+
+4. The Firefox process will crash and the crash report dialog will pop up. Make sure
+   to submit the crash, then click on "Quit Firefox" button
+
+   That will send the crash to ``nc`` which will pipe it to the file.
+
+5. Wait 30 seconds, then close the crash dialog window.
+
+   You should have a raw HTTP POST in ``http_post.raw``.
