@@ -19,9 +19,11 @@ Is the collector web process handling incoming crashes?
 Is the collector crashmover process saving crashes to S3? ES? Postgres?
 RabbitMQ?
 
-    * Log into collector node and watch the crashmover logs for errors.
+    * Log into a collector node and watch the crashmover logs for errors.
 
-      FIXME: List log paths.
+      ``/var/log/messages`` is the log file.
+
+      ``grep ERROR /var/log/messages | less`` to check for errors.
 
     * Check datadog ``crashmover.save_raw_crash`` for the appropriate
       environment.
@@ -39,9 +41,11 @@ Processor
 
 Is the processor process running?
 
-    * Log into processor node and watch the processor logs for errors.
+    * Log into a processor node and watch the processor logs for errors.
 
-      FIXME: List log paths.
+      ``/var/log/messages`` is the log file.
+
+      ``grep ERROR /var/log/messages | less`` to check for errors.
 
     * Check datadog ``processor.save_raw_and_processed`` for appropriate
       environment.
@@ -84,17 +88,18 @@ Is the webapp throwing errors?
     * Check sentry for errors
     * Log into webapp node and check logs for errors.
 
-      FIXME: List log paths.
+      ``/var/log/messages`` is the log file.
+
+      ``grep ERROR /var/log/messages | less`` to check for errors.
 
     * Run QA Selenium tests.
 
-      :prod: ``webqatestbot build socorro.prod.saucelabs``
-      :stage: ``webqatestbot build socorro.stage.saucelabs``
+      :prod: In IRC: ``webqatestbot build socorro.prod.saucelabs``
+      :stage: In IRC: ``webqatestbot build socorro.stage.saucelabs``
 
 Can we log into the webapp?
 
     * Log in and check the profile page.
-    * FIXME: Is there anything behind the login that's important to check?
 
 Is super search working?
 
