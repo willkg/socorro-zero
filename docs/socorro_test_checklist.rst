@@ -6,6 +6,15 @@ This is a high-level system-wide checklist for making sure Socorro is working
 correctly in a specific environment. It's helpful after we've made a significant
 change.
 
+.. Note::
+
+   This is used infrequently, so if you're about to make a significant change,
+   you should go through the checklist to make sure the checklist is correct and
+   that everything is working as expected and fix anything that's wrong, THEN
+   make your change, then go through the checklist again.
+
+   Lonnen the bear says, "Only you can prevent production fires!"
+
 .. contents::
 
 
