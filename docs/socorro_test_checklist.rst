@@ -6,14 +6,12 @@ This is a high-level system-wide checklist for making sure Socorro is working
 correctly in a specific environment. It's helpful after we've made a significant
 change.
 
-.. Note::
+**Note:** This is used infrequently, so if you're about to make a significant change,
+you should go through the checklist to make sure the checklist is correct and
+that everything is working as expected and fix anything that's wrong, THEN
+make your change, then go through the checklist again.
 
-   This is used infrequently, so if you're about to make a significant change,
-   you should go through the checklist to make sure the checklist is correct and
-   that everything is working as expected and fix anything that's wrong, THEN
-   make your change, then go through the checklist again.
-
-   Lonnen the bear says, "Only you can prevent production fires!"
+Lonnen the bear says, "Only you can prevent production fires!"
 
 .. contents::
 
@@ -25,6 +23,13 @@ Is the collector web process handling incoming crashes?
 
     * Log into collector node and watch the collector logs for errors.
 
+      ``/var/log/messages`` is the log file.
+
+      To check for errors, you could do this::
+
+          grep ERROR /var/log/messages | less
+
+
 Is the collector crashmover process saving crashes to S3? ES? Postgres?
 RabbitMQ?
 
@@ -32,13 +37,15 @@ RabbitMQ?
 
       ``/var/log/messages`` is the log file.
 
-      ``grep ERROR /var/log/messages | less`` to check for errors.
+      To check for errors, you could do this::
+
+          grep ERROR /var/log/messages | less
 
     * Check datadog ``crashmover.save_raw_crash`` for the appropriate
       environment.
 
-      :prod: it's on the Socorro Prod dashboard
-      :stage: ?
+      :prod: it's on the Socorro Prod Perf dashboard
+      :stage: it's on the Socorro Stage Perf dashboard
   
     * Submit a crash. Verify raw crash made it to S3. See these
       docs:
@@ -54,30 +61,46 @@ Is the processor process running?
 
       ``/var/log/messages`` is the log file.
 
-      ``grep ERROR /var/log/messages | less`` to check for errors.
+      To check for errors, you could do this::
+
+          grep ERROR /var/log/messages | less
 
     * Check datadog ``processor.save_raw_and_processed`` for appropriate
       environment.
 
+      :prod: Socorro Prod Perf dashboard
+      :stage: Socorro Stage Perf dashboard
+
 Is the processor saving to S3?
+
+Is the processor saving to ES? Postgres? S3?
+
+    * Check datadog
+      ``processor.es.ESCrashStorageRedactedJsonDump.save_raw_and_processed.avg``
+
+      :prod: Socorro Prod Perf dashboard
+      :stage: Socorro Stage Perf dashboard
 
     * Check datadog
       ``processor.s3.BotoS3CrashStorage.save_raw_and_processed`` for
       appropriate environment.
 
-Is the processor saving to ES?
+      :prod: Socorro Prod Perf dashboard
+      :stage: Socorro Stage Perf dashboard
 
     * Check datadog
-      ``processor.es.ESCrashStorageNoStackwalkerOutput.save_raw_and_processed.avg``
-      on the Socorro Prod Perf dashboard.
+      ``processor.postgres.PostgreSQLCrashStorage.save_raw_and_processed``
 
-Is the processor saving to Postgres?
+      :prod: Socorro Prod Perf dashboard
+      :stage: Socorro Stage Perf dashboard
 
-    * Check datadog
-      ``processor.postgres.PostgreSQLCrashStorage.save_raw_and_processed`` for
-      appropriate environment.
 
-Submit a crash. Verify processed crash made it to S3, ES and postgres.
+Submit a crash or look at the crashmover logs for a crash that should
+have been processed. Verify the crash was processed and made it to S3, ES and postgres.
+
+**FIXME:** We should write a script that uses envconsul to provide vars and takes
+a uuid via the command line and then checks all the things to make sure it's
+there. This assumes we don't already have one--we might!
 
 
 Webapp
