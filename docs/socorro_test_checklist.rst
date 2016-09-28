@@ -144,6 +144,13 @@ Top Crashers Signature report and Report index
       signature), browse to Report index (by clicking a crash id) to verify
       these work.
 
+Can you upload a symbols file?
+
+    * Download https://github.com/mozilla/socorro/blob/master/webapp-django/crashstats/symbols/tests/sample.zip to disk
+    * Log in with a user with permission to upload symbols.
+    * Go to /symbols/upload/web/
+    * Try to upload it
+    * To verify that it worked, go to the public symbols S3 bucket (e.g. `org.mozilla.crash-stats.staging.symbols-public` in stage) and check that there is a `xpcshell.sym` file in the root with a recent modify date. 
 
 Crontabber
 ==========
