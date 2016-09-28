@@ -3,8 +3,8 @@ Socorro Test Checklist
 ======================
 
 This is a high-level system-wide checklist for making sure Socorro is working
-correctly in a specific environment. It's helpful after we've made a significant
-change.
+correctly in a specific environment. It's a helpful template for figuring out
+what you need to change if you're pushing out a significant change.
 
 **Note:** This is used infrequently, so if you're about to make a significant change,
 you should go through the checklist to make sure the checklist is correct and
@@ -14,6 +14,20 @@ make your change, then go through the checklist again.
 Lonnen the bear says, "Only you can prevent production fires!"
 
 .. contents::
+
+
+How to use
+==========
+
+"Significant change" can mean any number of things, so this is just a template.
+You should do the following:
+
+1. Copy and paste the contents of this into an etherpad.
+
+2. Go through the etherpad and remove the things that don't make sense and
+   add additional things that are important.
+
+3. Uplift any interesting changes via PR to this document.
 
 
 Collector
@@ -146,11 +160,22 @@ Top Crashers Signature report and Report index
 
 Can you upload a symbols file?
 
-    * Download https://github.com/mozilla/socorro/blob/master/webapp-django/crashstats/symbols/tests/sample.zip to disk
+    * Download https://github.com/mozilla/socorro/blob/master/webapp-django/crashstats/symbols/tests/sample.zip
+      to disk
     * Log in with a user with permission to upload symbols.
-    * Go to /symbols/upload/web/
-    * Try to upload it
-    * To verify that it worked, go to the public symbols S3 bucket (e.g. `org.mozilla.crash-stats.staging.symbols-public` in stage) and check that there is a `xpcshell.sym` file in the root with a recent modify date. 
+    * Go to the symbol upload section.
+
+      :prod: https://crash-stats.mozilla.com/symbols/upload/web/
+      :stage: https://crash-stats.allizom.org/symbols/upload/web/
+
+    * Try to upload the ``sample.zip`` file.
+    * To verify that it worked, go to the public symbols S3 bucket:
+
+      :stage: org.mozilla.crash-stats.staging.symbols-public
+
+      and check that there is a ``xpcshell.sym`` file in the root with a recent
+      modify date. 
+
 
 Crontabber
 ==========
