@@ -11,9 +11,14 @@ Setup
 
    .. note::
 
-      If we don't delete this now, then ``make dev`` fails later on and I'm not
-      sure why. We can't delete it from within the vagrant vm because it kicks
-      up permission errors. I don't know why.
+      If we don't delete this now, then ``make dev`` fails later around line 27
+      in ``scripts/bootstrap.sh`` when trying to remove the directory citing
+      that the directory has contents. If you do a ``find stackwalk/`` inside
+      the vagrant vm, it shows three empty directories. If you do a ``find
+      stackwalk/`` outside the vagrant vm, then it shows a ton of files.
+
+      I have no idea why that happens, but you have to delete it outside
+      the vm.
 
    .. todo:: Figure out why we have to do this and why it's not handled
       better in ``make dev``.
@@ -39,12 +44,12 @@ Setup
 
       cd socorro
 
-#. Build the basic stuff::
+#. Build the basic stuff using the Python 2.7.11 binary::
 
       make dev
 
-#. Edit ``config/alembic.ini``. You want to change the ``database_username`` to
-   ``breakpad_rw``.
+#. Edit ``config/alembic.ini``. You want to change the ``database_username`` in
+   the ``sqlalchemy.url`` variable to ``breakpad_rw``.
 
    The previous value is for the test role and I think we want to not be using
    the test role for things.
