@@ -26,14 +26,19 @@ Having said that, if it's helpful, let me know. If you have problems,
 write up an issue.
 
 
-To set this up with Docker
-==========================
+Docker setup
+============
 
-Status
-------
+Status: January 30th, 2017
+--------------------------
 
-Collector and crashmover work with a Mozilla prod-like
-configuration. There is no processor, middleware or webapp, yet.
+* DONE: collector
+* DONE: crashmover
+* In-progress: prod-like configuration
+* Todo: processor
+* Todo: middleware
+* Todo: webapp
+
 
 Setup instructions
 ------------------
@@ -49,25 +54,37 @@ Setup instructions
 3. Clone the other repositories as subdirectories of the repository root::
 
      $ git clone https://github.com/mozilla/socorro
-     $ git clone https://github.com/mozilla/socorrolib
-     ...
+
+     # FIXME(willkg): are there other repositories needed?
 
    For each of these repositories, do whatever it is you need to do to get the
    remotes set up for your needs.
 
-4. Then go back to the repository root and run::
+   At the end of this step, the socorro-zero repository root should look like::
 
-     FIXME
+     bin/
+     dockerfiles/
+     docs/
+     socorro/             <-- the socorro git repo
+     Dockerfile
+     LICENSE
+     README.rst
+     docker-compose.yml
+     ...
 
-   This will create all the required docker containers and launch it all with a
-   configuration that's like Mozilla crash-stats production.
+4. In the repository root, do this::
+
+     make build
+
+   This will build the required docker containers.
+
 
 Usage
 -----
 
 To run everything::
 
-  $ dc up
+  $ make run
 
 To send a test crash:
 
@@ -75,14 +92,16 @@ FIXME
 
 To check graphite and see statsd data, go to http://localhost/ .
 
-To set this up with Vagrant
-===========================
 
-Status
-------
+Vagrant setup
+=============
 
-I'm not currently working on the vagrant environment, but I do still use it
-to run the unit tests.
+Status: January 30th, 2017
+--------------------------
+
+This setup is deprecated, but I still use it to run the socorro test suite.
+I'm not doing any maintenance work on it.
+
 
 Setup instructions
 ------------------
