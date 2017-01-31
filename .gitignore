@@ -2,6 +2,7 @@ docs/_build/
 *~
 .vagrant/
 .docker-build
+fakes3_root/
 
 /socorro-infra/
 /socorro/

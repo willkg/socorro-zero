@@ -71,6 +71,8 @@ services:
     image: lphoward/fake-s3
     ports:
       - "4569:4569"
+    volumes:
+      - ./fakes3_root:/fakes3_root
 
 volumes:
   crashes:
