@@ -46,6 +46,8 @@ services:
   # External services
   # ------------------------------------------------------
 
+  # memcache
+
   statsd:
     # https://hub.docker.com/r/hopsoft/graphite-statsd/
     image: hopsoft/graphite-statsd
@@ -58,7 +60,7 @@ services:
 
   rabbitmq:
     # https://hub.docker.com/_/rabbitmq/
-    # FIXME: pin this to the version tag of rabbitmq we're using in -stage
+    # FIXME(willkg): pin this to the version tag of rabbitmq we're using in -stage
     # and -prod
     image: rabbitmq
     environment:
@@ -74,5 +76,24 @@ services:
     volumes:
       - ./fakes3_root:/fakes3_root
 
+  postgresql:
+    # https://hub.docker.com/_/postgres/
+    image: postgres:9.4
+    environment:
+      # FIXME(willkg): Set these to whatever we use--must match config
+      - POSTGRES_PASSWORD=xxx
+      - POSTGRES_USER=xxx
+      - POSTGRES_DB=xxx
+
+  elasticsearch:
+    # https://hub.docker.com/r/oba11/elasticsearch/
+    image: oba11/elasticsearch:1.4.4
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    # FIXME(willkg): Do we have to specify cluster name and other things?
+
+
 volumes:
+  # Used for collector and crashmover for queueing crashes
   crashes:

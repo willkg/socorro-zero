@@ -4,9 +4,10 @@ docs/_build/
 .docker-build
 fakes3_root/
 
-/socorro-infra/
-/socorro/
-/socorrolib/
-/socorro-collector/
+# Various repositories
 /antenna/
+/antenna-loadtests/
+/socorro/
+/socorro-infra/
+/socorro-pigeon/
 /notes/

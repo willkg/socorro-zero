@@ -14,8 +14,12 @@ help:
 	make build
 
 build:
-	${DC} build
+	${DC} build socorrobase
 	touch .docker-build
+
+bootstrap: .docker-build
+	${DC} run socorrobase bin/build_stackwalker.sh
+	${DC} run socorrobase bin/bootstrap_webapp.sh
 
 # FIXME(willkg): shell
 

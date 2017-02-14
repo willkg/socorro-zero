@@ -21,7 +21,10 @@ RUN yum -y install epel-release \
     && yum -y install libcurl-devel libffi-devel libxml2-devel libxslt-devel memcached openldap-devel openssl-devel rpm-build rub-devel rsync subygem-puppet-lint time unzip \
     && yum -y install postgresql94-devel postgres94-contrib postgres94-plperl postgres94-server \
     && yum -y install nodejs npm nodejs-less \
-    && yum -y install python-devel python-pip pylint
+    && yum -y install python-devel python-pip pylint \
+    && yum -y install wget
+
+# FIXME(willkg): Build python 2.7.11
 
 # Update to pip8
 COPY socorro/tools/pipstrap.py /app/socorro/tools/pipstrap.py
@@ -35,7 +38,7 @@ RUN PATH=$PATH:/usr/pgsql-9.4/bin/ pip install --require-hashes -r /app/socorro/
 # Copy over the app
 ADD socorro /app/socorro/
 
-# FIXME: build stackwalk and put the binaries in the right place; this doesn't
+# FIXME(willkg): build stackwalk and put the binaries in the right place; this doesn't
 # change much, so we probably want it before the previous ADD. We probably want
 # it in its own script that we can call from scripts/bootstrap.sh as well as
 # here.
