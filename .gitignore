@@ -6,7 +6,10 @@ fakes3_root/
 
 # Various repositories
 /antenna/
+/antenna-catcher/
+/antenna-debug-utils/
 /antenna-loadtests/
+/processor/
 /socorro/
 /socorro-infra/
 /socorro-pigeon/
