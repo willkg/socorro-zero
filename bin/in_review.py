@@ -30,7 +30,7 @@ gross looking bits, it evolves of its own accord.
 
 Usage:
 
-From parent directory run::
+Run this from the repository root::
 
     python bin/in_review.py <YEAR> [<QUARTER>]
 
@@ -142,7 +142,6 @@ def print_bugzilla_stats(from_date, to_date):
     resolved_map = {}
     resolvers = {}
     traceback_bugs = []
-    research_bugs = []
     tracker_bugs = []
     commenters = {}
 
@@ -150,8 +149,6 @@ def print_bugzilla_stats(from_date, to_date):
         summary = bug['summary'].lower()
         if summary.startswith('[traceback]'):
             traceback_bugs.append(bug)
-        elif summary.startswith('[research]'):
-            research_bugs.append(bug)
         elif summary.startswith('[tracker]'):
             tracker_bugs.append(bug)
 
@@ -207,16 +204,8 @@ def print_bugzilla_stats(from_date, to_date):
 
     print ''
     for title, count in [('Tracebacks', len(traceback_bugs)),
-                         ('Research', len(research_bugs)),
                          ('Tracker', len(tracker_bugs))]:
         print ' %34s : %s' % (title, count)
-
-    print ''
-    print 'Research bugs: %s' % len(research_bugs)
-    print ''
-    for bug in research_bugs:
-        print wrap('%s: %s' % (bug['id'], bug['summary']),
-                   subsequent='        ')
 
     print ''
     print 'Tracker bugs: %s' % len(tracker_bugs)
@@ -242,22 +231,19 @@ def print_bugzilla_stats(from_date, to_date):
         print ' %34s : %s' % (person[:30], count)
 
 
-def git(*args):
-    path = os.path.abspath(
-        os.path.join(
-            os.path.dirname(__file__),
-            '..',
-            'socorro',
-            '.git'
-        )
-    )
+def git(path, *args):
     args = ['git', '--git-dir=%s' % path, '--work-tree=%s' % path] + list(args)
     return subprocess.check_output(args)
 
 
-def print_git_stats(from_date, to_date):
+def print_git_stats(path, from_date, to_date):
+    if not os.path.exists(path):
+        print('Path "%s" does not exist.' % path)
+        return
+
     all_commits = git(
-        'log', 
+        path,
+        'log',
         '--after=' + from_date.strftime('%Y-%m-%d'),
         '--before=' + to_date.strftime('%Y-%m-%d'),
         '--format=%H'
@@ -272,13 +258,13 @@ def print_git_stats(from_date, to_date):
     changes = {}
 
     for commit in all_commits:
-        author = git('show', '-s', '--format=%an', commit)
+        author = git(path, 'show', '-s', '--format=%an', commit)
         author = author.strip()
 
         committers[author] = committers.get(author, 0) + 1
         all_people.add(author)
 
-        diff_data = git('show', '--numstat', '--format=oneline',
+        diff_data = git(path, 'show', '--numstat', '--format=oneline',
                         '--find-copies-harder', commit)
         total_added = 0
         total_deleted = 0
@@ -335,10 +321,14 @@ def print_all_people():
         print '    ' + person
 
 
-def print_header(text):
+def print_header(text, level=1):
+    level_to_char = {
+        1: '=',
+        2: '-',
+    }
     print ''
     print text
-    print '=' * len(text)
+    print level_to_char[level] * len(text)
     print ''
 
 
@@ -384,7 +374,16 @@ def main(argv):
     print_bugzilla_stats(from_date, to_date)
 
     print_header('git')
-    print_git_stats(from_date, to_date)
+    for path in ('socorro', 'antenna', 'tecken'):
+        print_header(path, level=2)
+        path = os.path.abspath(
+            os.path.join(
+                '.',
+                path,
+                '.git'
+            )
+        )
+        print_git_stats(path, from_date, to_date)
 
     print_header('Everyone')
     print_all_people()
