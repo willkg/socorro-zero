@@ -14,3 +14,7 @@ fi
 
 # Add pg directory to path so pg-config works
 export PATH=$PATH:/usr/pgsql-9.4/bin/
+
+# Add Python related env variables
+export PYTHONUNBUFFERED=1
+export PYTHONDONTWRITEBYTECODE=1
