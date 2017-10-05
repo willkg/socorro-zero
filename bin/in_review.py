@@ -46,6 +46,7 @@ QUARTERS = {
     3: [(7, 1), (9, 30)],
     4: [(10, 1), (12, 31)]
 }
+GIT_REPOS = ['socorro', 'antenna', 'tecken', 'jansky']
 
 USAGE = 'Usage: in_review.py <YEAR> [<QUARTER>]'
 HEADER = 'in_review.py: find out what happened year or quarter!'
@@ -374,7 +375,7 @@ def main(argv):
     print_bugzilla_stats(from_date, to_date)
 
     print_header('git')
-    for path in ('socorro', 'antenna', 'tecken'):
+    for path in GIT_REPOS:
         print_header(path, level=2)
         path = os.path.abspath(
             os.path.join(
