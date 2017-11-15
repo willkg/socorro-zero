@@ -37,32 +37,6 @@ class socorro::vagrant {
         Exec['postgres-initdb'],
         File['pg_hba.conf'],
       ];
-
-    'elasticsearch':
-      ensure  => running,
-      enable  => true,
-      require => Package['elasticsearch'];
-  }
-
-  yumrepo {
-    'elasticsearch':
-      baseurl => 'http://packages.elasticsearch.org/elasticsearch/1.4/centos',
-      gpgkey  => 'https://packages.elasticsearch.org/GPG-KEY-elasticsearch';
-    'PGDG':
-      baseurl => 'http://yum.postgresql.org/9.4/redhat/rhel-$releasever-$basearch',
-      gpgkey  => 'http://yum.postgresql.org/RPM-GPG-KEY-PGDG';
-  }
-
-  Yumrepo['elasticsearch', 'PGDG'] {
-    enabled  => 1,
-    gpgcheck => 1
-  }
-
-  package {
-    'fpm':
-      ensure   => latest,
-      provider => gem,
-      require  => Package['ruby-devel'];
   }
 
   package {
@@ -74,6 +48,53 @@ class socorro::vagrant {
     'yum-plugin-fastestmirror':
       ensure  => latest,
       require => Package['ca-certificates']
+  }
+
+  package {
+    'nss':
+      ensure => latest
+  }
+
+  package {
+    'nss-util':
+      ensure => latest
+  }
+
+  package {
+    'nss-sysinit':
+      ensure => latest
+  }
+  package {
+    'nss-tools':
+      ensure => latest
+  }
+  package {
+    'curl':
+      ensure => latest
+  }
+
+  yumrepo {
+# FIXME(willkg): Elasticsearch is no longer at this location. :(
+#   'elasticsearch':
+#     baseurl => 'http://packages.elasticsearch.org/elasticsearch/1.4/centos',
+#     gpgkey  => 'https://packages.elasticsearch.org/GPG-KEY-elasticsearch';
+
+    'PGDG':
+      baseurl => 'https://yum.postgresql.org/9.4/redhat/rhel-$releasever-$basearch',
+      gpgkey  => 'https://yum.postgresql.org/RPM-GPG-KEY-PGDG';
+  }
+
+#  Yumrepo['elasticsearch', 'PGDG'] {
+  Yumrepo['PGDG'] {
+    enabled  => 1,
+    gpgcheck => 1
+  }
+
+  package {
+    'fpm':
+      ensure   => latest,
+      provider => gem,
+      require  => Package['ruby-devel'];
   }
 
   package {
@@ -169,15 +190,6 @@ class socorro::vagrant {
     require => Package['epel-release', 'yum-plugin-fastestmirror']
   }
 
-  package {
-    'elasticsearch':
-      ensure  => latest,
-      require => [
-        Yumrepo['elasticsearch'],
-        Package['java-1.7.0-openjdk']
-      ]
-  }
-
   file {
     'motd':
       ensure => file,
@@ -193,6 +205,15 @@ class socorro::vagrant {
       ],
       notify  => Service['sshd']
   }
+
+#  package {
+#    'elasticsearch':
+#      ensure  => latest,
+#      require => [
+#        Yumrepo['elasticsearch'],
+#        Package['java-1.7.0-openjdk']
+#      ]
+#  }
 
   file {
     '/etc/socorro':
@@ -216,12 +237,12 @@ class socorro::vagrant {
       source => 'puppet:///modules/socorro/home/bashrc',
       owner  => 'vagrant';
 
-    'elasticsearch.yml':
-      ensure  => file,
-      path    => '/etc/elasticsearch/elasticsearch.yml',
-      source  => 'puppet:///modules/socorro/etc_elasticsearch/elasticsearch.yml',
-      owner   => 'root',
-      require => Package['elasticsearch'],
-      notify  => Service['elasticsearch'];
+#    'elasticsearch.yml':
+#      ensure  => file,
+#      path    => '/etc/elasticsearch/elasticsearch.yml',
+#      source  => 'puppet:///modules/socorro/etc_elasticsearch/elasticsearch.yml',
+#      owner   => 'root',
+#      require => Package['elasticsearch'],
+#      notify  => Service['elasticsearch'];
   }
 }

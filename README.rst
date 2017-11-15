@@ -114,13 +114,11 @@ Setup instructions
 
      $ cd socorro-zero
 
-3. Clone the other repositories::
+3. Clone the other repository::
 
      $ git clone https://github.com/mozilla/socorro
-     $ git clone https://github.com/mozilla/socorrolib
 
-   For each of these repositories, do whatever it is you need to do to
-   get the remotes set up for your needs.
+   Do whatever it is you need to do to get the remotes set up for your needs.
 
 4. Then go back to the socorro-zero root directory and run::
 

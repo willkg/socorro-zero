@@ -17,14 +17,6 @@ make dev
 # Activate the virtual environment
 . "${ROOTDIR}/socorro/socorro-virtualenv/bin/activate"
 
-# If socorrolib repo is here, stomp on the released package with it
-if [[ -e "${ROOTDIR}/socorrolib" ]]
-then
-    echo ">>> Found socorrolib repo--installing that...."
-    cd "${ROOTDIR}/socorrolib"
-    pip install -e .
-fi
-
 # FIXME: Check for configuration files, generate the ones that are
 # missing and edit them with the appropriate values for this vm.
 
@@ -36,10 +28,6 @@ fi
 # minimum amount of data to do useful things.
 cd "${ROOTDIR}/socorro"
 ./scripts/socorro setupdb --database_name=breakpad --fakedata --fakedata_days=3 --createdb
-
-# Create Elasticsearch index and add data for super search.
-cd "${ROOTDIR}/socorro/scripts"
-python setup_supersearch_app.py
 
 # Index some crashes--need a way to have this halt at some point.
 # FIXME: Fix this.
