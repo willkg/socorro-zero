@@ -4,41 +4,89 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
+"""This script shows rough information from Bugzilla and GitHub for a given period
+of time denoted by year and (optionally) quarter.
+
+This script was never designed. Rather, it started as a single-celled organism
+subjected to heavy doses of gamma radiation. Over time, quarter after quarter,
+it grew into the monstrosity of procedural generation you see before you.
+
+This script is poorly maintained. Other than bombarding it with radiation every
+quarter and occasionally trimming off the really gross looking bits, it evolves
+of its own accord.
+
+
+API tokens
+==========
+
+Running this script requires a Bugzilla API token and a GitHub token.
+
+Bugzilla API token is given via the ``BUGZILLA_API_KEY`` environment variable
+or stored in plain text in ``~/.bugzilla`` file.
+
+GitHub API token is given via the ``GITHUB_API_KEY`` environment variable or
+stored in plain text in ``~/.githubauth`` file. In both cases, the "token" is
+composed of the GitHub username, a colon, then the API key. the form is::
+
+    USERNAME:APIKEY
+
+For example::
+
+    janetexample:abcdef0000000000000000000000000000000000
+
+
+Usage
+=====
+
+To use this:
+
+1. Create a virtual environment with Python 3::
+
+       mkvirtualenv --python=/usr/bin/python3 inreview
+
+2. Install the dependencies::
+
+       pip install bugzilla github3.py requests
+
+3. Either set the environment variables or create the files required for
+   tokens.
+
+4. Run from the repository root::
+
+       BUGZILLA_API_KEY=xyz python bin/in_review.py <YEAR> [<QUARTER>]
+
+"""
+
 import datetime
 import os
-import subprocess
 import sys
 import textwrap
-import urllib
 
-import requests
 
-"""
-This script was never designed. Rather, it started as a single-celled
-organism subjected to heavy doses of gamma radiation. Over time, 
-quarter after quarter, it grew into the monstrosity of procedural
-generation you see before you.
-
-This script is poorly maintained. Other than bombarding it with
-radiation every quarter and occasionally trimming off the really
-gross looking bits, it evolves of its own accord.
-
-.. WARNING::
-
-   Running this script is done at your own risk. Make sure to have
-   a bucket of water handy.
-
-Usage:
-
-Run this from the repository root::
-
-    python bin/in_review.py <YEAR> [<QUARTER>]
-
-"""
+try:
+    import bugzilla
+    import github3
+except ImportError as ie:
+    print(ie)
+    print('Please run "pip install requests bugzilla github3.py".')
+    sys.exit(1)
 
 
 BUGZILLA_API_URL = 'https://bugzilla.mozilla.org/rest/'
 BUGZILLA_PRODUCT = 'Socorro'
+GITHUB_REPOS = [
+    # Main Socorro repository
+    ('mozilla-services', 'socorro'),
+
+    # New Socorro collector
+    ('mozilla-services', 'antenna'),
+
+    # Symbols server
+    ('mozilla-services', 'tecken'),
+
+    # New Socorro processor
+    # ('mozilla-services', 'jansky'),
+]
 
 QUARTERS = {
     1: [(1, 1), (3, 31)],
@@ -46,12 +94,32 @@ QUARTERS = {
     3: [(7, 1), (9, 30)],
     4: [(10, 1), (12, 31)]
 }
-GIT_REPOS = ['socorro', 'antenna', 'tecken', 'jansky']
 
 USAGE = 'Usage: in_review.py <YEAR> [<QUARTER>]'
 HEADER = 'in_review.py: find out what happened year or quarter!'
 
+
 all_people = set()
+
+
+def str_to_dt(text):
+    return datetime.datetime.strptime(text + '+0000', '%Y-%m-%dT%H:%M:%SZ%z')
+
+
+def dt_to_str(dt):
+    """Converts a dt value to a YYYY-MM-DD string
+
+    If the dt value is a string, it gets returned. If it's a datetime.datetime
+    or a datetime.date, then it gets formatted as YYYY-MM-DD and returned.
+
+    :arg varies dt: the date to convert
+
+    :returns: date as a YYYY-MM-DD string
+
+    """
+    if isinstance(dt, (datetime.datetime, datetime.date)):
+        return dt.strftime('%Y-%m-%d')
+    return dt
 
 
 def wrap(text, indent='    ', subsequent='    '):
@@ -62,264 +130,404 @@ def wrap(text, indent='    ', subsequent='    '):
     return '\n\n'.join(text)
 
 
-def fetch(url):
-    resp = requests.get(url)
-    if resp.status_code != 200:
-        raise Exception(resp.text)
-
-    json_data = resp.json()
-
-    if json_data.get('error'):
-        raise Exception('ERROR ' + repr(json_data))
-
-    return json_data
+def truncate(text, length):
+    if len(text) > length:
+        return text[:length - 3] + '...'
+    return text
 
 
-def fetch_bugs(params):
-    url = BUGZILLA_API_URL + '/bug' + '?' + urllib.urlencode(params)
-    return fetch(url)
+class BugzillaBrief(bugzilla.Bugzilla):
+    def get_history(self, bugid):
+        """Retrieves the history for a bug"""
+        return self._get('bug/{bugid}/history'.format(bugid=bugid))
+
+    def get_bugs_created(self, product, from_date, to_date):
+        """Retrieves summary of all bugs created between two dates for a given product
+
+        :arg str product: the product to look at
+        :arg from_date: greater than or equal to this date
+        :arg to_date: less than or equal to this date
+
+        :returns: dict with "count", "creator_count", and "bugs" keys
+
+        """
+        terms = [
+            {'product': product},
+            {'f1': 'creation_ts'},
+            {'o1': 'greaterthaneq'},
+            {'v1': dt_to_str(from_date)},
+            {'f2': 'creation_ts'},
+            {'o2': 'lessthaneq'},
+            {'v2': dt_to_str(to_date)},
+        ]
+        resp = self.search_bugs(terms=terms)
+
+        creation_count = len(resp.bugs)
+        creators = {}
+        for bug in resp.bugs:
+            # FIXME(willkg): Move name figuring this to another function
+            creator = bug.get('creator_detail', {}).get('real_name', None)
+            if not creator:
+                creator = bug.get('creator', '').split('@')[0]
+            creators[creator] = creators.get(creator, 0) + 1
+
+        return {
+            'count': creation_count,
+            'creators': creators,
+            'bugs': resp.bugs
+        }
+
+    def get_resolution_history_item(self, bug):
+        history = self.get_history(bug['id'])
+        for item in reversed(history.bugs[0]['history']):
+            # See if this item in the history is the resolving event. If it is,
+            # then we know who resolved the bug and we can stop looking at
+            # history.
+            changes = [
+                change for change in item['changes']
+                if change['field_name'] == 'status' and change['added'] == 'RESOLVED'
+            ]
+
+            if changes:
+                bug['ir_resolution_item'] = item
+                return
+
+        # None of the history was a resolution, so we mark it as None.
+        bug['ir_resolution_item'] = None
+
+    def get_bugs_resolved(self, product, from_date, to_date):
+        terms = [
+            {'product': product},
+            {'f1': 'cf_last_resolved'},
+            {'o1': 'greaterthaneq'},
+            {'v1': dt_to_str(from_date)},
+            {'f2': 'cf_last_resolved'},
+            {'o2': 'lessthan'},
+            {'v2': dt_to_str(to_date)},
+        ]
+        resp = self.search_bugs(terms=terms)
+
+        resolved_count = len(resp.bugs)
+        resolved_map = {}
+        resolvers = {}
+
+        for bug in resp.bugs:
+            resolution = bug['resolution']
+            resolved_map[resolution] = resolved_map.get(resolution, 0) + 1
+
+            assigned_to = bug.get('assigned_to_detail', {}).get('real_name', None)
+            if not assigned_to:
+                assigned_to = bug.assigned_to.split('@')[0]
+
+            self.get_resolution_history_item(bug)
+            if 'nobody' in assigned_to.lower():
+                # If no one was assigned, we give "credit" to whoever triaged
+                # the bug. We go through the history in reverse order because
+                # the "resolver" is the last person to resolve the bug.
+                assigned_to = bug['ir_resolution_item']['who']
+
+            if assigned_to:
+                if '@' in assigned_to:
+                    assigned_to = assigned_to.split('@')[0]
+
+            resolvers[assigned_to] = resolvers.get(assigned_to, 0) + 1
+
+        return {
+            'count': resolved_count,
+            'resolvers': resolvers,
+            'resolved_map': resolved_map,
+            'bugs': resp.bugs
+        }
 
 
-def fetch_bug_history(bugid):
-    url = BUGZILLA_API_URL + ('/bug/%d/history' % bugid)
-    return fetch(url)
+class GitHubBrief:
+    def __init__(self, username=None, password=None):
+        if username and password:
+            self.client = github3.login(
+                username=username,
+                password=password,
+                two_factor_callback=self.two_factor_callback
+            )
+        else:
+            self.client = github3.GitHub()
+
+    def two_factor_callback():
+        code = ''
+        while not code:
+            code = input('Enter 2fa: ').strip()
+        return code
+
+    def merged_pull_requests(self, owner, repo, from_date, to_date):
+        from_date = dt_to_str(from_date)
+        to_date = dt_to_str(to_date)
+
+        merged_prs = []
+
+        repo = self.client.repository(owner=owner, repository=repo)
+        resp = repo.iter_pulls(state='closed', sort='updated', direction='desc')
+
+        # We're sorting by "updated", but that could be a comment and not
+        # necessarily a merge event, so we fudge this by continuing N past the
+        # from_date
+        N = 20
+        past_from_date = 0
+
+        for pr in resp:
+            if not pr.merged_at:
+                continue
+
+            if dt_to_str(pr.merged_at) > to_date:
+                # Outside the range, so continue
+                continue
+
+            if dt_to_str(pr.merged_at) < from_date:
+                # Outside the range, but since PRs are ordered by updated descending, we
+                # continue another N past the from_date and then break
+                if past_from_date > N:
+                    break
+                past_from_date += 1
+                continue
+
+            merged_prs.append(pr)
+
+        return {
+            'prs': merged_prs
+        }
 
 
-def fetch_bug_comments(bugid):
-    url = BUGZILLA_API_URL + ('/bug/%d/comment' % bugid)
-    return fetch(url)
+def statistics(ages_items):
+    ages = [item[0] for item in ages_items]
+    return {
+        'min': min(ages_items, key=lambda item: item[0]),
+        'max': max(ages_items, key=lambda item: item[0]),
+        'average': sum(ages) / len(ages),
+        'median': sorted(ages)[int(len(ages) / 2)]
+    }
+
+
+def get_bugzilla_token():
+    """Retrieves Bugzilla API token from env or ~/.bugzilla file"""
+    api_key = os.environ.get('BUGZILLA_API_KEY')
+    if api_key:
+        return api_key
+
+    path = os.path.expanduser('~/.bugzilla')
+    if os.path.exists(path):
+        return open(path, 'r').read().strip()
+
+    return None
 
 
 def print_bugzilla_stats(from_date, to_date):
-    # ------------------------------------------------
+    api_key = get_bugzilla_token()
+    if not api_key:
+        print(
+            'You need to specify a Bugzilla API key either in the BUGZILLA_API_KEY '
+            'environment variable or in the ~/.bugzilla file.'
+        )
+        return
+
+    bugzilla_brief = BugzillaBrief(
+        url=BUGZILLA_API_URL,
+        api_key=api_key
+    )
+
     # Bug creation stats
-    # ------------------------------------------------
-    params = {
-        'product': BUGZILLA_PRODUCT,
-        'f1': 'creation_ts',
-        'o1': 'greaterthaneq',
-        'v1': from_date.strftime('%Y-%m-%d'),
-        'f2': 'creation_ts',
-        'o2': 'lessthan',
-        'v2': to_date.strftime('%Y-%m-%d')
-    }
 
-    json_data = fetch_bugs(params)
+    created_stats = bugzilla_brief.get_bugs_created(BUGZILLA_PRODUCT, from_date, to_date)
 
-    creation_count = len(json_data['bugs'])
+    print('Bugs created: %s' % created_stats['count'])
+    print('Creators: %s' % len(created_stats['creators']))
+    print('')
 
-    creators = {}
-    for bug in json_data['bugs']:
-        creator = bug['creator_detail']['real_name']
-        if not creator:
-            creator = bug['creator'].split('@')[0]
-        creators[creator] = creators.get(creator, 0) + 1
-        all_people.add(creator)
-
-    print 'Bugs created: %s' % creation_count
-    print 'Creators: %s' % len(creators)
-    print ''
-    creators = sorted(creators.items(), reverse=True, key=lambda item: item[1])
+    creators = sorted(created_stats['creators'].items(), reverse=True, key=lambda item: item[1])
     for person, count in creators:
-        print ' %34s : %s' % (person[:30], count)
-    print ''
+        print(' %34s : %s' % (person[:30], count))
+        all_people.add(person)
+    print('')
 
-    # ------------------------------------------------
     # Bug resolution stats
-    # ------------------------------------------------
-    params = {
-        'product': BUGZILLA_PRODUCT,
-        'f1': 'cf_last_resolved',
-        'o1': 'greaterthaneq',
-        'v1': from_date.strftime('%Y-%m-%d'),
-        'f2': 'cf_last_resolved',
-        'o2': 'lessthan',
-        'v2': to_date.strftime('%Y-%m-%d')
-    }
 
-    json_data = fetch_bugs(params)
+    resolved_stats = bugzilla_brief.get_bugs_resolved(BUGZILLA_PRODUCT, from_date, to_date)
 
-    resolved_count = len(json_data['bugs'])
-    resolved_map = {}
-    resolvers = {}
-    traceback_bugs = []
-    tracker_bugs = []
-    commenters = {}
+    print('Bugs resolved: %s' % resolved_stats['count'])
+    print('')
+    for resolution, count in resolved_stats['resolved_map'].items():
+        print(' %34s : %s' % (resolution, count))
 
-    for bug in json_data['bugs']:
-        summary = bug['summary'].lower()
-        if summary.startswith('[traceback]'):
-            traceback_bugs.append(bug)
-        elif summary.startswith('[tracker]'):
-            tracker_bugs.append(bug)
+    print('')
+    print('Resolvers: %s' % len(resolved_stats['resolvers']))
+    print('')
+    resolvers = sorted(resolved_stats['resolvers'].items(), reverse=True,
+                       key=lambda item: item[1])
+    for person, count in resolvers:
+        print(' %34s : %s' % (person[:30], count))
+        all_people.add(person)
 
-        history = fetch_bug_history(bug['id'])
+    # Commenter stats
 
-        resolution = bug['resolution']
-        resolved_map[resolution] = resolved_map.get(resolution, 0) + 1
-        assigned = bug['assigned_to_detail']['real_name']
-        if not assigned:
-            assigned = bug['assigned_to'].split('@')[0]
-
-        if 'nobody' in assigned.lower():
-            # If no one was assigned, we give "credit" to whoever
-            # triaged the bug. We go through the history in reverse
-            # order because the "resolver" is the last person to
-            # resolve the bug.
-            for item in reversed(history['bugs'][0]['history']):
-                # See if this item in the history is the resolving event.
-                # If it is, then we know who resolved the bug and we
-                # can stop looking at history.
-                changes = [change for change in item['changes']
-                           if change['field_name'] == 'status' and
-                           change['added'] == 'RESOLVED']
-
-                if not changes:
-                    continue
-
-                assigned = item['who']
-                break
-
-        if assigned:
-            if '@' in assigned:
-                assigned = assigned.split('@')[0]
-
-            resolvers[assigned] = resolvers.get(assigned, 0) + 1
-            all_people.add(assigned)
-
-        # Now get all the commenters
-        comments = fetch_bug_comments(bug['id'])
+    person_to_comment_count = {}
+    for bug in resolved_stats['bugs']:
+        comments = bugzilla_brief.get_comments(bug['id'])
         # The Bugzilla REST api has some interesting things about it.
         for comment in comments['bugs'][str(bug['id'])]['comments']:
             commenter = comment['author']
             if '@' in commenter:
                 commenter = commenter.split('@')[0]
 
-            commenters[commenter] = commenters.get(commenter, 0) + 1
+                person_to_comment_count[commenter] = person_to_comment_count.get(commenter, 0) + 1
             all_people.add(commenter)
 
-    print 'Bugs resolved: %s' % resolved_count
-    print ''
-    for resolution, count in resolved_map.items():
-        print ' %34s : %s' % (resolution, count)
-
-    print ''
-    for title, count in [('Tracebacks', len(traceback_bugs)),
-                         ('Tracker', len(tracker_bugs))]:
-        print ' %34s : %s' % (title, count)
-
-    print ''
-    print 'Tracker bugs: %s' % len(tracker_bugs)
-    print ''
-    for bug in tracker_bugs:
-        print wrap('%s: %s' % (bug['id'], bug['summary']),
-                   subsequent='        ')
-
-    print ''
-    print 'Resolvers: %s' % len(resolvers)
-    print ''
-    resolvers = sorted(resolvers.items(), reverse=True,
-                       key=lambda item: item[1])
-    for person, count in resolvers:
-        print ' %34s : %s' % (person[:30], count)
-
-    print ''
-    print 'Commenters: %s' % len(commenters)
-    print ''
-    commenters = sorted(commenters.items(), reverse=True,
-                        key=lambda item: item[1])
+    print('')
+    print('Commenters: %s' % len(person_to_comment_count))
+    print('')
+    commenters = sorted(person_to_comment_count.items(), reverse=True, key=lambda item: item[1])
     for person, count in commenters:
-        print ' %34s : %s' % (person[:30], count)
+        print(' %34s : %s' % (person[:30], count))
+
+    tracker_bugs = []
+    for bug in resolved_stats['bugs']:
+        if '[tracker]' in bug['summary']:
+            tracker_bugs.append(bug)
+
+    # Tracker bugs
+
+    print('')
+    print('Tracker bugs: %s' % len(tracker_bugs))
+    print('')
+    for bug in tracker_bugs:
+        print(wrap('%s: %s' % (bug['id'], bug['summary']), subsequent='        '))
+
+    # Statistics
+
+    stats = statistics([
+        (
+            (str_to_dt(bug['ir_resolution_item']['when']) - str_to_dt(bug['creation_time'])).days,
+            bug
+        )
+        for bug in resolved_stats['bugs']
+    ])
+
+    print('')
+    print('Statistics')
+    print('')
+    print('    Youngest bug : %-2.1fd: %s: %s' % (
+        stats['min'][0],
+        stats['min'][1]['id'],
+        truncate(stats['min'][1]['summary'], 40)
+    ))
+    print(' Average bug age : %-2.1fd' % stats['average'])
+    print('  Median bug age : %-2.1fd' % stats['median'])
+    print('      Oldest bug : %-2.1fd: %s: %s' % (
+        stats['max'][0],
+        stats['max'][1]['id'],
+        truncate(stats['max'][1]['summary'], 40)
+    ))
 
 
-def git(path, *args):
-    args = ['git', '--git-dir=%s' % path, '--work-tree=%s' % path] + list(args)
-    return subprocess.check_output(args)
+def get_github_auth():
+    """Retrieves github auth credentials from a ~/.githubauth file"""
+    user_token = os.environ.get('GITHUB_API_KEY')
+    if user_token:
+        return user_token.split(':')
+
+    path = os.path.expanduser('~/.githubauth')
+    if os.path.exists(path):
+        return open(path, 'r').read().strip().split(':')
+
+    return None
 
 
-def print_git_stats(path, from_date, to_date):
-    if not os.path.exists(path):
-        print('Path "%s" does not exist.' % path)
-        return
+def print_github_stats(from_date, to_date):
+    auth = get_github_auth()
+    if auth:
+        github_brief = GitHubBrief(auth[0], auth[1])
+    else:
+        github_brief = GitHubBrief()
 
-    all_commits = git(
-        path,
-        'log',
-        '--after=' + from_date.strftime('%Y-%m-%d'),
-        '--before=' + to_date.strftime('%Y-%m-%d'),
-        '--format=%H'
-    )
-
-    all_commits = all_commits.splitlines()
-
-    # Person -> # commits
-    committers = {}
-
-    # Person -> (# files changed, # inserted, # deleted)
-    changes = {}
-
-    for commit in all_commits:
-        author = git(path, 'show', '-s', '--format=%an', commit)
-        author = author.strip()
-
-        committers[author] = committers.get(author, 0) + 1
-        all_people.add(author)
-
-        diff_data = git(path, 'show', '--numstat', '--format=oneline',
-                        '--find-copies-harder', commit)
-        total_added = 0
-        total_deleted = 0
-        total_files = 0
-
-        # Skip the first line because it's the oneline summary and that's
-        # not part of the numstat data we want.
-        lines = diff_data.splitlines()[1:]
-        for line in lines:
-            if not line:
-                continue
-            added, deleted, fn = line.split('\t')
-            if fn.startswith('vendor/'):
-                continue
-            if added != '-':
-                total_added += int(added)
-            if deleted != '-':
-                total_deleted += int(deleted)
-            total_files += 1
-
-        old_changes = changes.get(author, (0, 0, 0))
-        changes[author] = (
-            old_changes[0] + total_added,
-            old_changes[1] + total_deleted,
-            old_changes[2] + total_files
+    merged_prs = {}
+    for owner, repo in GITHUB_REPOS:
+        merged_prs[(owner, repo)] = github_brief.merged_pull_requests(
+            owner, repo, from_date, to_date
         )
 
-    print 'Total commits:', len(all_commits)
-    print ''
+    print('')
+    print('Total merged PRs: %s' % sum(len(prs['prs']) for prs in merged_prs.values()))
+    for key, prs in sorted(merged_prs.items()):
+        # Person -> pull requests
+        committers = {}
 
-    committers = sorted(
-        committers.items(), key=lambda item: item[1], reverse=True)
-    for person, count in committers:
-        print '  %20s : %5s  (+%s, -%s, files %s)' % (
-            person, count,
-            changes[person][0], changes[person][1], changes[person][2])
-        all_people.add(person)
+        # Person -> (# inserted, # deleted)
+        changes = {}
 
-    # This is goofy summing, but whatevs.
-    print ''
-    print 'Total lines added:', sum([item[0] for item in changes.values()])
-    print 'Total lines deleted:', sum([item[1] for item in changes.values()])
-    print 'Total files changed:', sum([item[2] for item in changes.values()])
+        total_added = total_deleted = 0
+
+        prs = prs['prs']
+        print('    %s: %s prs' % ('%s/%s' % key, len(prs)))
+        if prs:
+            for pr in prs:
+                user_name = str(pr.user)
+                committers.setdefault(user_name, []).append(pr)
+
+                for pr_file in pr.iter_files():
+                    added, deleted = changes.get(user_name, (0, 0))
+
+                    changes[user_name] = (
+                        added + pr_file.additions,
+                        deleted + pr_file.deletions
+                    )
+
+                    total_added += pr_file.additions
+                    total_deleted += pr_file.deletions
+
+            # Figure out prs, additions, and deletions per person
+            committers = sorted(committers.items(), key=lambda item: len(item[1]), reverse=True)
+            for user_name, committed_prs in committers:
+                print(' %20s : %5s  (%6s, %6s)' % (
+                    user_name,
+                    len(committed_prs),
+                    '+' + str(changes[user_name][0]),
+                    '-' + str(changes[user_name][1])
+                ))
+                all_people.add(user_name)
+
+            print('')
+            print('                Total :        (%6s, %6s)' % (
+                '+' + str(total_added),
+                '-' + str(total_deleted)
+            ))
+
+            print('')
+            stats = statistics([
+                ((pr.merged_at - pr.created_at).days, pr)
+                for pr in prs
+            ])
+            print('          Youngest PR : %-2.1fd: %s: %s' % (
+                stats['min'][0],
+                stats['min'][1].number,
+                truncate(stats['min'][1].title, 40)
+            ))
+            print('       Average PR age : %-2.1fd' % stats['average'])
+            print('        Median PR age : %-2.1fd' % stats['median'])
+            print('            Oldest PR : %-2.1fd: %s: %s' % (
+                stats['max'][0],
+                stats['max'][1].number,
+                truncate(stats['max'][1].title, 40)
+            ))
+
+        print('')
 
 
 def print_all_people():
     # We do this sorting thing to make it a little easier to suss out
-    # duplicates since we're pulling names from three different forms
-    # between Bugzilla and git. You're still going to have to go
-    # through it by hand to remove duplicates.
+    # duplicates since we're pulling names from three different forms between
+    # Bugzilla and git.
+
+    # You're still going to have to go through it by hand to remove duplicates.
     people = sorted(all_people, key=lambda a: a.lower())
 
     for person in people:
-        print '    ' + person
+        print('    ' + person)
 
 
 def print_header(text, level=1):
@@ -327,32 +535,26 @@ def print_header(text, level=1):
         1: '=',
         2: '-',
     }
-    print ''
-    print text
-    print level_to_char[level] * len(text)
-    print ''
+    print('')
+    print(text)
+    print(level_to_char[level] * len(text))
+    print('')
 
 
 def main(argv):
-    # XXX: This helps debug bugzilla xmlrpc bits.
-    # logging.basicConfig(level=logging.DEBUG)
-
     if len(argv) < 1:
-        print USAGE
-        print 'Error: Must specify year or year and quarter. Examples:'
-        print 'in_review.py 2014'
-        print 'in_review.py 2014 1'
+        print(USAGE)
+        print('Error: Must specify year or year and quarter. Examples:')
+        print('in_review.py 2014')
+        print('in_review.py 2014 1')
         return 1
 
-    print HEADER
+    print(HEADER)
 
     year = int(argv[0])
     if len(argv) == 1:
         from_date = datetime.date(year, 1, 1)
         to_date = datetime.date(year, 12, 31)
-
-        # Add 1 day because we do less-than.
-        to_date = to_date + datetime.timedelta(days=1)
 
         print_header('Year %s (%s -> %s)' % (year, from_date, to_date))
 
@@ -360,35 +562,24 @@ def main(argv):
         quarter = int(argv[1])
         quarter_dates = QUARTERS[quarter]
 
-        from_date = datetime.date(
-            year, quarter_dates[0][0], quarter_dates[0][1])
-        to_date = datetime.date(
-            year, quarter_dates[1][0], quarter_dates[1][1])
+        from_date = datetime.date(year, quarter_dates[0][0], quarter_dates[0][1])
+        to_date = datetime.date(year, quarter_dates[1][0], quarter_dates[1][1])
 
-        # Add 1 day because we do less-than.
-        to_date = to_date + datetime.timedelta(days=1)
-
-        print_header('Quarter %sq%s (%s -> %s)' % (
-            year, quarter, from_date, to_date))
+        print_header('Quarter %sq%s (%s -> %s)' % (year, quarter, from_date, to_date))
 
     print_header('Bugzilla')
     print_bugzilla_stats(from_date, to_date)
 
-    print_header('git')
-    for path in GIT_REPOS:
-        print_header(path, level=2)
-        path = os.path.abspath(
-            os.path.join(
-                '.',
-                path,
-                '.git'
-            )
-        )
-        print_git_stats(path, from_date, to_date)
+    print_header('GitHub')
+    print_github_stats(from_date, to_date)
 
-    print_header('Everyone')
+    print_header('Contributors')
     print_all_people()
 
 
 if __name__ == '__main__':
+    if not sys.version.startswith('3'):
+        print('Requires Python 3.')
+        sys.exit(1)
+
     sys.exit(main(sys.argv[1:]))
