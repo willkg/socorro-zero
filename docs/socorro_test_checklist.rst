@@ -13,6 +13,8 @@ make your change, then go through the checklist again.
 
 Lonnen the bear says, "Only you can prevent production fires!"
 
+Last updated: November 15th, 2017
+
 .. contents::
 
 
@@ -22,48 +24,28 @@ How to use
 "Significant change" can mean any number of things, so this is just a template.
 You should do the following:
 
-1. Copy and paste the contents of this into an etherpad.
+1. Copy and paste the contents of this into a Google doc.
 
-2. Go through the etherpad and remove the things that don't make sense and
-   add additional things that are important.
+2. Go through the Google doc, remove things that don't make sense, and add
+   additional things that are important.
 
-3. Uplift any interesting changes via PR to this document.
-
-
-Collector
-=========
-
-Is the collector web process handling incoming crashes?
-
-    * Log into collector node and watch the collector logs for errors.
-
-      ``/var/log/messages`` is the log file.
-
-      To check for errors, you could do this::
-
-          grep ERROR /var/log/messages | less
+3. Uplift any changes via PR to this document.
 
 
-Is the collector crashmover process saving crashes to S3? ES? Postgres?
-RabbitMQ?
+Collector (Antenna)
+===================
 
-    * Log into a collector node and watch the crashmover logs for errors.
+Is the collector handling incoming crashes?
 
-      ``/var/log/messages`` is the log file.
+    * Check datadog Antenna dashboard for the appropriate environment.
 
-      To check for errors, you could do this::
+      :localdev: Check the logging in the console
+      :stage: https://app.datadoghq.com/dash/272676/antenna--stage
+      :prod: https://app.datadoghq.com/dash/274773/antenna--prod
 
-          grep ERROR /var/log/messages | less
+    * Log into Sentry and check for errors.
 
-    * Check datadog ``crashmover.save_raw_crash`` for the appropriate
-      environment.
-
-      :prod: it's on the Socorro Prod Perf dashboard
-      :stage: it's on the Socorro Stage Perf dashboard
-  
-    * Submit a crash. Verify raw crash made it to S3. See these
-      docs:
-      http://socorro.readthedocs.io/en/latest/configuring-socorro.html?highlight=curl#test-collection-and-processing
+    * Submit a crash to the collector. Verify raw crash made it to S3.
    
 
 Processor
@@ -79,38 +61,37 @@ Is the processor process running?
 
           grep ERROR /var/log/messages | less
 
-    * Check datadog ``processor.save_raw_and_processed`` for appropriate
+    * Check Datadog ``processor.save_raw_and_processed`` for appropriate
       environment.
 
-      :prod: Socorro Prod Perf dashboard
-      :stage: Socorro Stage Perf dashboard
-
-Is the processor saving to S3?
+      :localdev: Check the logging in the console
+      :stage: https://app.datadoghq.com/dash/272676/antenna--stage
+      :prod: https://app.datadoghq.com/dash/274773/antenna--prod
 
 Is the processor saving to ES? Postgres? S3?
 
-    * Check datadog
+    * Check Datadog
       ``processor.es.ESCrashStorageRedactedJsonDump.save_raw_and_processed.avg``
 
-      :prod: Socorro Prod Perf dashboard
-      :stage: Socorro Stage Perf dashboard
+      :stage: https://app.datadoghq.com/dash/272676/antenna--stage
+      :prod: https://app.datadoghq.com/dash/274773/antenna--prod
 
-    * Check datadog
+    * Check Datadog
       ``processor.s3.BotoS3CrashStorage.save_raw_and_processed`` for
       appropriate environment.
 
-      :prod: Socorro Prod Perf dashboard
-      :stage: Socorro Stage Perf dashboard
+      :stage: https://app.datadoghq.com/dash/272676/antenna--stage
+      :prod: https://app.datadoghq.com/dash/274773/antenna--prod
 
-    * Check datadog
+    * Check Datadog
       ``processor.postgres.PostgreSQLCrashStorage.save_raw_and_processed``
 
-      :prod: Socorro Prod Perf dashboard
-      :stage: Socorro Stage Perf dashboard
+      :stage: https://app.datadoghq.com/dash/272676/antenna--stage
+      :prod: https://app.datadoghq.com/dash/274773/antenna--prod
 
 
-Submit a crash or look at the crashmover logs for a crash that should
-have been processed. Verify the crash was processed and made it to S3, ES and postgres.
+Submit a crash or reprocess a crash. Wait a few minutes. Verify the crash was
+processed and made it to S3, ES and Postgres.
 
 **FIXME:** We should write a script that uses envconsul to provide vars and takes
 a uuid via the command line and then checks all the things to make sure it's
@@ -124,14 +105,15 @@ Is the webapp up?
 
     * Use a browser and check the healthcheck.
 
-      :prod: https://crash-stats.mozilla.com/monitoring/healthcheck/
+      :localdev: http://localhost:8000/monitoring/healthcheck/
       :stage: https://crash-stats.allizom.org/monitoring/healthcheck/
+      :prod: https://crash-stats.mozilla.com/monitoring/healthcheck/
 
       It should say "ok: true".
 
 Is the webapp throwing errors?
 
-    * Check sentry for errors
+    * Check Sentry for errors
     * Log into webapp node and check logs for errors.
 
       ``/var/log/messages`` is the log file.
@@ -140,12 +122,21 @@ Is the webapp throwing errors?
 
     * Run QA Selenium tests.
 
-      :prod: In IRC: ``webqatestbot build socorro.prod.saucelabs``
+      :localdev: ?
       :stage: In IRC: ``webqatestbot build socorro.stage.saucelabs``
+      :prod: In IRC: ``webqatestbot build socorro.prod.saucelabs``
 
 Can we log into the webapp?
 
     * Log in and check the profile page.
+
+Is the product home page working?
+
+    * Check the Firefox product home page
+
+      :localdev: http://localhost:8000/
+      :stage: https://crash-stats.allizom.org/home/product/Firefox
+      :prod: https://crash-stats.mozilla.com/home/product/Firefox
 
 Is super search working?
 
@@ -154,9 +145,9 @@ Is super search working?
 
 Top Crashers Signature report and Report index
 
-    * Browse to Top Crashers, browse to Signature report (by clicking a
-      signature), browse to Report index (by clicking a crash id) to verify
-      these work.
+    1. Browse to Top Crashers
+    2. Click on a crash signature to browse to Signature report
+    3. Click on a crash id to browse to report index
 
 Can you upload a symbols file?
 
@@ -165,8 +156,8 @@ Can you upload a symbols file?
     * Log in with a user with permission to upload symbols.
     * Go to the symbol upload section.
 
-      :prod: https://crash-stats.mozilla.com/symbols/upload/web/
       :stage: https://crash-stats.allizom.org/symbols/upload/web/
+      :prod: https://crash-stats.mozilla.com/symbols/upload/web/
 
     * Try to upload the ``sample.zip`` file.
     * To verify that it worked, go to the public symbols S3 bucket:
@@ -182,22 +173,33 @@ Crontabber
 
 Is crontabber working?
 
-    * Check healthcheck endpoint.
+    * Check healthcheck endpoint:
 
-      :prod: https://crash-stats.mozilla.com/monitoring/crontabber/
+      :localdev: http://localhost:8000/monitoring/crontabber/
       :stage: https://crash-stats.allizom.org/monitoring/crontabber/
+      :prod: https://crash-stats.mozilla.com/monitoring/crontabber/
 
       It should say ALLGOOD.
 
-      There's a more comprehensive UI:
+    * Check the webapp crontabber-state page:
 
-      :prod: https://crash-stats.mozilla.com/crontabber-state/
+      :localdev: http://localhost:8000/crontabber-state/
       :stage: https://crash-stats.allizom.org/crontabber-state/
+      :prod: https://crash-stats.mozilla.com/crontabber-state/
+
+Is crontabber throwing errors?
+
+    * Check Sentry for errors
+    * Log into admin node and check logs for errors
+
+      ``/var/log/messages`` is the log file.
+
+      ``grep ERROR /var/log/messages | less`` to check for errors.
 
 
-Stage crashmover
-================
+Stage submitter
+===============
 
-Is it running and sending crashes?
+Is the stage submitter running and sending crashes?
 
-    * Check datadog stage environment ``crashmover.save_raw_crash``
+    * Check Datadog dashboard for Antenna on -stage
