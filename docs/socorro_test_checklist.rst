@@ -15,8 +15,6 @@ Lonnen the bear says, "Only you can prevent production fires!"
 
 Last updated: November 15th, 2017
 
-.. contents::
-
 
 How to use
 ==========
@@ -36,6 +34,31 @@ Checklist
 =========
 
 ::
+
+    Migrations
+    ==========
+
+    Make sure we can run migrations
+
+    * Django migrations
+
+      Local dev environment:
+
+      1. "docker-compose run webapp bash"
+      2. "cd webapp-django/"
+      3. "./manage.py showmigrations"
+
+      -stage/-prod:
+
+    * Alembic migrations
+
+      Local dev environment:
+
+      1. "docker-compose run processor bash"
+      2. "alembic -c docker/config/alembic.ini current"
+
+      -stage/-prod:
+
 
     Collector (Antenna)
     ===================
@@ -60,11 +83,9 @@ Checklist
 
     * Log into a processor node and watch the processor logs for errors.
 
-      Log file: /var/log/messages
+      Log file: "/var/log/messages"
 
-      To check for errors, you could do this:
-
-          grep ERROR /var/log/messages | less
+      To check for errors: "grep ERROR /var/log/messages | less"
 
     * Check Datadog "processor.save_raw_and_processed" for appropriate
       environment.
@@ -128,8 +149,8 @@ Checklist
     * Run QA Selenium tests.
 
       localdev: ?
-      stage: In IRC: ``webqatestbot build socorro.stage.saucelabs``
-      prod: In IRC: ``webqatestbot build socorro.prod.saucelabs``
+      stage: In IRC: "webqatestbot build socorro.stage.saucelabs"
+      prod: In IRC: "webqatestbot build socorro.prod.saucelabs"
 
     Can we log into the webapp?
 
@@ -164,12 +185,12 @@ Checklist
       stage: https://crash-stats.allizom.org/symbols/upload/web/
       prod: https://crash-stats.mozilla.com/symbols/upload/web/
 
-    * Try to upload the ``sample.zip`` file.
+    * Try to upload the "sample.zip" file.
     * To verify that it worked, go to the public symbols S3 bucket:
 
       stage: org.mozilla.crash-stats.staging.symbols-public
 
-      and check that there is a ``xpcshell.sym`` file in the root with a recent
+      and check that there is a "xpcshell.sym" file in the root with a recent
       modify date. 
 
 
