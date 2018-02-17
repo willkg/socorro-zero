@@ -336,13 +336,13 @@ def print_bugzilla_stats(from_date, to_date):
 
     created_stats = bugzilla_brief.get_bugs_created(BUGZILLA_PRODUCT, from_date, to_date)
 
-    print('Bugs created: %s' % created_stats['count'])
-    print('Creators: %s' % len(created_stats['creators']))
+    print('  Bugs created: %s' % created_stats['count'])
+    print('  Creators: %s' % len(created_stats['creators']))
     print('')
 
     creators = sorted(created_stats['creators'].items(), reverse=True, key=lambda item: item[1])
     for person, count in creators:
-        print(' %34s : %s' % (person[:30], count))
+        print('   %34s : %s' % (person[:30], count))
         all_people.add(person)
     print('')
 
@@ -350,18 +350,18 @@ def print_bugzilla_stats(from_date, to_date):
 
     resolved_stats = bugzilla_brief.get_bugs_resolved(BUGZILLA_PRODUCT, from_date, to_date)
 
-    print('Bugs resolved: %s' % resolved_stats['count'])
+    print('  Bugs resolved: %s' % resolved_stats['count'])
     print('')
     for resolution, count in resolved_stats['resolved_map'].items():
-        print(' %34s : %s' % (resolution, count))
+        print('   %34s : %s' % (resolution, count))
 
     print('')
-    print('Resolvers: %s' % len(resolved_stats['resolvers']))
+    print('  Resolvers: %s' % len(resolved_stats['resolvers']))
     print('')
     resolvers = sorted(resolved_stats['resolvers'].items(), reverse=True,
                        key=lambda item: item[1])
     for person, count in resolvers:
-        print(' %34s : %s' % (person[:30], count))
+        print('   %34s : %s' % (person[:30], count))
         all_people.add(person)
 
     # Commenter stats
@@ -379,11 +379,11 @@ def print_bugzilla_stats(from_date, to_date):
             all_people.add(commenter)
 
     print('')
-    print('Commenters: %s' % len(person_to_comment_count))
+    print('  Commenters: %s' % len(person_to_comment_count))
     print('')
     commenters = sorted(person_to_comment_count.items(), reverse=True, key=lambda item: item[1])
     for person, count in commenters:
-        print(' %34s : %s' % (person[:30], count))
+        print('   %34s : %s' % (person[:30], count))
 
     tracker_bugs = []
     for bug in resolved_stats['bugs']:
@@ -393,10 +393,10 @@ def print_bugzilla_stats(from_date, to_date):
     # Tracker bugs
 
     print('')
-    print('Tracker bugs: %s' % len(tracker_bugs))
+    print('  Tracker bugs: %s' % len(tracker_bugs))
     print('')
     for bug in tracker_bugs:
-        print(wrap('%s: %s' % (bug['id'], bug['summary']), subsequent='        '))
+        print(wrap('  %s: %s' % (bug['id'], bug['summary']), subsequent='        '))
 
     # Statistics
 
@@ -409,19 +409,19 @@ def print_bugzilla_stats(from_date, to_date):
     ])
 
     print('')
-    print('Statistics')
+    print('  Statistics')
     print('')
-    print('    Youngest bug : %-2.1fd: %s: %s' % (
+    print('      Youngest bug : %-2.1fd: %s: %s' % (
         stats['min'][0],
         stats['min'][1]['id'],
-        truncate(stats['min'][1]['summary'], 40)
+        truncate(stats['min'][1]['summary'], 50)
     ))
-    print(' Average bug age : %-2.1fd' % stats['average'])
-    print('  Median bug age : %-2.1fd' % stats['median'])
-    print('      Oldest bug : %-2.1fd: %s: %s' % (
+    print('   Average bug age : %-2.1fd' % stats['average'])
+    print('    Median bug age : %-2.1fd' % stats['median'])
+    print('        Oldest bug : %-2.1fd: %s: %s' % (
         stats['max'][0],
         stats['max'][1]['id'],
-        truncate(stats['max'][1]['summary'], 40)
+        truncate(stats['max'][1]['summary'], 50)
     ))
 
 
@@ -451,8 +451,6 @@ def print_github_stats(from_date, to_date):
             owner, repo, from_date, to_date
         )
 
-    print('')
-    print('Total merged PRs: %s' % sum(len(prs['prs']) for prs in merged_prs.values()))
     for key, prs in sorted(merged_prs.items()):
         # Person -> pull requests
         committers = {}
@@ -460,44 +458,63 @@ def print_github_stats(from_date, to_date):
         # Person -> (# inserted, # deleted)
         changes = {}
 
+        # These are total line counts
         total_added = total_deleted = 0
 
+        # This is the dict of all files that changed to number of times they
+        # changed
+        files_changed = {}
+
         prs = prs['prs']
-        print('    %s: %s prs' % ('%s/%s' % key, len(prs)))
+        print('  %s: %s prs' % ('%s/%s' % key, len(prs)))
+        print('')
         if prs:
             for pr in prs:
                 user_name = str(pr.user)
                 committers.setdefault(user_name, []).append(pr)
 
                 for pr_file in pr.iter_files():
-                    added, deleted = changes.get(user_name, (0, 0))
+                    added, deleted, changed = changes.get(user_name, (0, 0, {}))
+                    changed[pr_file.filename] = changed.get(pr_file.filename, 0) + 1
 
                     changes[user_name] = (
                         added + pr_file.additions,
-                        deleted + pr_file.deletions
+                        deleted + pr_file.deletions,
+                        changed
                     )
 
                     total_added += pr_file.additions
                     total_deleted += pr_file.deletions
+                    files_changed[pr_file.filename] = files_changed.get(pr_file.filename, 0) + 1
 
             # Figure out prs, additions, and deletions per person
+            print('    Committers:')
             committers = sorted(committers.items(), key=lambda item: len(item[1]), reverse=True)
             for user_name, committed_prs in committers:
-                print(' %20s : %5s  (%6s, %6s)' % (
+                print(' %20s : %5s  (%6s, %6s, %4s files)' % (
                     user_name,
                     len(committed_prs),
                     '+' + str(changes[user_name][0]),
-                    '-' + str(changes[user_name][1])
+                    '-' + str(changes[user_name][1]),
+                    str(len(changes[user_name][2]))
                 ))
                 all_people.add(user_name)
 
             print('')
-            print('                Total :        (%6s, %6s)' % (
+            print('                Total :        (%6s, %6s, %4s files)' % (
                 '+' + str(total_added),
-                '-' + str(total_deleted)
+                '-' + str(total_deleted),
+                str(len(files_changed))
             ))
 
             print('')
+            print('    Most changed files:')
+            most_changed_files = sorted(files_changed.items(), key=lambda item: item[1], reverse=True)
+            for fn, count in most_changed_files[:10]:
+                print('      %s (%d)' % (fn, count))
+
+            print('')
+            print('    Age stats:')
             stats = statistics([
                 ((pr.merged_at - pr.created_at).days, pr)
                 for pr in prs
@@ -505,17 +522,23 @@ def print_github_stats(from_date, to_date):
             print('          Youngest PR : %-2.1fd: %s: %s' % (
                 stats['min'][0],
                 stats['min'][1].number,
-                truncate(stats['min'][1].title, 40)
+                truncate(stats['min'][1].title, 50)
             ))
             print('       Average PR age : %-2.1fd' % stats['average'])
             print('        Median PR age : %-2.1fd' % stats['median'])
             print('            Oldest PR : %-2.1fd: %s: %s' % (
                 stats['max'][0],
                 stats['max'][1].number,
-                truncate(stats['max'][1].title, 40)
+                truncate(stats['max'][1].title, 50)
             ))
 
         print('')
+
+    print('')
+    print('  All repositories:')
+    print('')
+    print('    Total merged PRs: %s' % sum(len(prs['prs']) for prs in merged_prs.values()))
+    print('')
 
 
 def print_all_people():
@@ -527,7 +550,7 @@ def print_all_people():
     people = sorted(all_people, key=lambda a: a.lower())
 
     for person in people:
-        print('    ' + person)
+        print('  ' + person)
 
 
 def print_header(text, level=1):
