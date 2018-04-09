@@ -81,6 +81,9 @@ GITHUB_REPOS = [
     # New Socorro collector
     ('mozilla-services', 'antenna'),
 
+    # Pigeon
+    ('mozilla-services', 'socorro-pigeon'),
+
     # Symbols server
     ('mozilla-services', 'tecken'),
 
