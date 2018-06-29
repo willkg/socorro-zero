@@ -73,7 +73,11 @@ except ImportError as ie:
 
 
 BUGZILLA_API_URL = 'https://bugzilla.mozilla.org/rest/'
-BUGZILLA_PRODUCT = 'Socorro'
+BUGZILLA_PRODUCTS = [
+    # product, list of components (use - to remove a component)
+    ('Socorro', ['-Tecken Integration'])
+]
+
 GITHUB_REPOS = [
     # Main Socorro repository
     ('mozilla-services', 'socorro'),
@@ -85,7 +89,7 @@ GITHUB_REPOS = [
     ('mozilla-services', 'socorro-pigeon'),
 
     # Symbols server
-    ('mozilla-services', 'tecken'),
+    # ('mozilla-services', 'tecken'),
 
     # New Socorro processor
     # ('mozilla-services', 'jansky'),
@@ -144,41 +148,57 @@ class BugzillaBrief(bugzilla.Bugzilla):
         """Retrieves the history for a bug"""
         return self._get('bug/{bugid}/history'.format(bugid=bugid))
 
-    def get_bugs_created(self, product, from_date, to_date):
+    def get_bugs_created(self, products, from_date, to_date):
         """Retrieves summary of all bugs created between two dates for a given product
 
-        :arg str product: the product to look at
+        :arg list products: products and components to look at
         :arg from_date: greater than or equal to this date
         :arg to_date: less than or equal to this date
 
         :returns: dict with "count", "creator_count", and "bugs" keys
 
         """
-        terms = [
-            {'product': product},
-            {'f1': 'creation_ts'},
-            {'o1': 'greaterthaneq'},
-            {'v1': dt_to_str(from_date)},
-            {'f2': 'creation_ts'},
-            {'o2': 'lessthaneq'},
-            {'v2': dt_to_str(to_date)},
-        ]
-        resp = self.search_bugs(terms=terms)
-
-        creation_count = len(resp.bugs)
-        creators = {}
-        for bug in resp.bugs:
-            # FIXME(willkg): Move name figuring this to another function
-            creator = bug.get('creator_detail', {}).get('real_name', None)
-            if not creator:
-                creator = bug.get('creator', '').split('@')[0]
-            creators[creator] = creators.get(creator, 0) + 1
-
-        return {
-            'count': creation_count,
-            'creators': creators,
-            'bugs': resp.bugs
+        ret = {
+            'count': 0,
+            'creators': {},
+            'bugs': []
         }
+
+        for product, comps in products:
+            exclude_comp = [c[1:] for c in comps if c.startswith('-')]
+            include_comp = [c for c in comps if not c.startswith('-')]
+
+            terms = [
+                {'product': product},
+                {'f1': 'creation_ts'},
+                {'o1': 'greaterthaneq'},
+                {'v1': dt_to_str(from_date)},
+                {'f2': 'creation_ts'},
+                {'o2': 'lessthaneq'},
+                {'v2': dt_to_str(to_date)},
+            ]
+            resp = self.search_bugs(terms=terms)
+
+            creation_count = len(resp.bugs)
+            creators = {}
+            for bug in resp.bugs:
+                if exclude_comp and bug['component'] in exclude_comp:
+                    continue
+                if include_comp and bug['component'] not in include_comp:
+                    continue
+
+                # FIXME(willkg): Move name figuring this to another function
+                creator = bug.get('creator_detail', {}).get('real_name', None)
+                if not creator:
+                    creator = bug.get('creator', '').split('@')[0]
+                creators[creator] = creators.get(creator, 0) + 1
+
+            ret['count'] = ret['count'] + creation_count
+            for key, val in creators.items():
+                ret['creators'][key] = ret['creators'].get(key, 0) + val
+            ret['bugs'].extend(resp.bugs)
+
+        return ret
 
     def get_resolution_history_item(self, bug):
         history = self.get_history(bug['id'])
@@ -198,49 +218,66 @@ class BugzillaBrief(bugzilla.Bugzilla):
         # None of the history was a resolution, so we mark it as None.
         bug['ir_resolution_item'] = None
 
-    def get_bugs_resolved(self, product, from_date, to_date):
-        terms = [
-            {'product': product},
-            {'f1': 'cf_last_resolved'},
-            {'o1': 'greaterthaneq'},
-            {'v1': dt_to_str(from_date)},
-            {'f2': 'cf_last_resolved'},
-            {'o2': 'lessthan'},
-            {'v2': dt_to_str(to_date)},
-        ]
-        resp = self.search_bugs(terms=terms)
-
-        resolved_count = len(resp.bugs)
-        resolved_map = {}
-        resolvers = {}
-
-        for bug in resp.bugs:
-            resolution = bug['resolution']
-            resolved_map[resolution] = resolved_map.get(resolution, 0) + 1
-
-            assigned_to = bug.get('assigned_to_detail', {}).get('real_name', None)
-            if not assigned_to:
-                assigned_to = bug.assigned_to.split('@')[0]
-
-            self.get_resolution_history_item(bug)
-            if 'nobody' in assigned_to.lower():
-                # If no one was assigned, we give "credit" to whoever triaged
-                # the bug. We go through the history in reverse order because
-                # the "resolver" is the last person to resolve the bug.
-                assigned_to = bug['ir_resolution_item']['who']
-
-            if assigned_to:
-                if '@' in assigned_to:
-                    assigned_to = assigned_to.split('@')[0]
-
-            resolvers[assigned_to] = resolvers.get(assigned_to, 0) + 1
-
-        return {
-            'count': resolved_count,
-            'resolvers': resolvers,
-            'resolved_map': resolved_map,
-            'bugs': resp.bugs
+    def get_bugs_resolved(self, products, from_date, to_date):
+        ret = {
+            'count': 0,
+            'resolvers': {},
+            'resolved_map': {},
+            'bugs': []
         }
+
+        for product, comps in products:
+            exclude_comp = [c for c in comps if c.startswith('-')]
+            include_comp = [c for c in comps if not c.startswith('-')]
+
+            terms = [
+                {'product': product},
+                {'f1': 'cf_last_resolved'},
+                {'o1': 'greaterthaneq'},
+                {'v1': dt_to_str(from_date)},
+                {'f2': 'cf_last_resolved'},
+                {'o2': 'lessthan'},
+                {'v2': dt_to_str(to_date)},
+            ]
+            resp = self.search_bugs(terms=terms)
+
+            resolved_count = len(resp.bugs)
+            resolved_map = {}
+            resolvers = {}
+
+            for bug in resp.bugs:
+                if exclude_comp and bug['component'] in exclude_comp:
+                    continue
+                if include_comp and bug['component'] not in include_comp:
+                    continue
+                resolution = bug['resolution']
+                resolved_map[resolution] = resolved_map.get(resolution, 0) + 1
+
+                assigned_to = bug.get('assigned_to_detail', {}).get('real_name', None)
+                if not assigned_to:
+                    assigned_to = bug.get('assigned_to', 'unknown').split('@')[0]
+
+                self.get_resolution_history_item(bug)
+                if 'nobody' in assigned_to.lower():
+                    # If no one was assigned, we give "credit" to whoever triaged
+                    # the bug. We go through the history in reverse order because
+                    # the "resolver" is the last person to resolve the bug.
+                    assigned_to = bug['ir_resolution_item']['who']
+
+                if assigned_to:
+                    if '@' in assigned_to:
+                        assigned_to = assigned_to.split('@')[0]
+
+                resolvers[assigned_to] = resolvers.get(assigned_to, 0) + 1
+
+            ret['count'] += resolved_count
+            for key, val in resolvers.items():
+                ret['resolvers'][key] = ret['resolvers'].get(key, 0) + val
+            for key, val in resolved_map.items():
+                ret['resolved_map'][key] = ret['resolved_map'].get(key, 0) + val
+            ret['bugs'].extend(resp.bugs)
+
+        return ret
 
 
 class GitHubBrief:
@@ -337,7 +374,7 @@ def print_bugzilla_stats(from_date, to_date):
 
     # Bug creation stats
 
-    created_stats = bugzilla_brief.get_bugs_created(BUGZILLA_PRODUCT, from_date, to_date)
+    created_stats = bugzilla_brief.get_bugs_created(BUGZILLA_PRODUCTS, from_date, to_date)
 
     print('  Bugs created: %s' % created_stats['count'])
     print('  Creators: %s' % len(created_stats['creators']))
@@ -351,7 +388,7 @@ def print_bugzilla_stats(from_date, to_date):
 
     # Bug resolution stats
 
-    resolved_stats = bugzilla_brief.get_bugs_resolved(BUGZILLA_PRODUCT, from_date, to_date)
+    resolved_stats = bugzilla_brief.get_bugs_resolved(BUGZILLA_PRODUCTS, from_date, to_date)
 
     print('  Bugs resolved: %s' % resolved_stats['count'])
     print('')
