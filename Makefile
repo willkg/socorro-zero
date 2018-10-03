@@ -1,29 +1,18 @@
+# This Source Code Form is subject to the terms of the Mozilla Public
+# License, v. 2.0. If a copy of the MPL was not distributed with this
+# file, You can obtain one at http://mozilla.org/MPL/2.0/.
+
 DC := $(shell which docker-compose)
 
-default:
+.PHONY: help
+help: default
 	@echo "You need to specify a subcommand."
 	@exit 1
 
-help:
-	@echo "build            - build docker containers for dev"
-	@echo ""
-	@echo "run              - run all the socorro nodes"
+.PHONY: default
+default:
+	@echo "setup            - set up Socorro repositories"
 
-# Dev configuration steps
-.docker-build:
-	make build
-
-build:
-	${DC} build
-	touch .docker-build
-
-# FIXME(willkg): shell
-
-# FIXME(willkg): test
-
-# FIXME(willkg): clean
-
-run: .docker-build
-	${DC} up
-
-.PHONY: default help clean build run
+.PHONY: setup
+setup:
+	@echo "tbd"

@@ -1,6 +1,0 @@
-[pgdg]
-name=Postgres
-baseurl=http://yum.postgresql.org/9.4/redhat/rhel-$releasever-$basearch
-enabled=1
-gpgcheck=1
-gpgkey=http://yum.postgresql.org/RPM-GPG-KEY-PGDG
