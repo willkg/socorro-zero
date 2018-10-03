@@ -1,12 +1,9 @@
 docs/_build/
 *~
-.vagrant/
-.docker-build
-fakes3_root/
+*.swp
 
-/socorro-infra/
-/socorro/
-/socorrolib/
-/socorro-collector/
-/antenna/
-/notes/
+/antenna*
+/socorro*
+/jansky/
+/cloudops-deployment/
+/archive/
