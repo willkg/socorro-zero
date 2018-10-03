@@ -13,7 +13,6 @@ Architecture notes:
 
    arch_collector
    arch_processor
-   arch_middleware
    arch_webapp
 
 Development related notes:
@@ -21,7 +20,6 @@ Development related notes:
 .. toctree::
 
    breakpad_reporting
-   dev_vagrant
 
 
 Indices and tables
