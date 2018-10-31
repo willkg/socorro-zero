@@ -20,6 +20,27 @@ Socorro docs:
     http://socorro.readthedocs.io/en/latest/configuring-socorro.html#test-collection-and-processing
 
 
+What is a breakpad crash report?
+================================
+
+"breakpad" is the name of the library that has client and server parts for a
+crash reporting system. 
+
+https://chromium.googlesource.com/breakpad/breakpad/+/master/docs/client_design.md
+
+When Firefox crashes, it generates a dump in minidump format that contains the
+CPU context, information about all the threads, and a list of loaded code
+segments/modules.
+
+https://chromium.googlesource.com/breakpad/breakpad/+/master/docs/processor_design.md
+
+The dump file doesn't contain symbols. The stacks need to be parsed out of the dump
+file by a stackwalker and symbolicated by the processor.
+
+Metadata about the crash (product name, build id, version, release channel, etc) and
+all the dump files are assembled into a multipart/form-data payload.
+
+
 Where do reports come from?
 ===========================
 
@@ -79,11 +100,11 @@ From Ted:
 How do reports get to the collector?
 ====================================
 
-Breakpad reports are submitted to a collector over HTTP.
+Breakpad reports are submitted to a collector with an HTTP POST.
 
 Things to know about the HTTP POST request:
 
-1. Incoming reports can be gzip compressed.
+1. Incoming HTTP payloads can be gzip compressed.
 
    This is particularly important for mobile.
 
@@ -92,20 +113,19 @@ Things to know about the HTTP POST request:
    Note that some of the information is duplicated in querystring variables to
    make logging and debugging easier.
 
-3. HTTP POST request body is multi-part form data.
+3. HTTP POST request body is multipart/form-data.
 
 4. HTTP POST request body has previously had problems with null bytes and
-   non-utf-8 characters. They've taken great pains to make sure it contains
-   correct utf-8 characters.
-
-   Still a good idea to do a pass on removing null bytes.
+   non-utf-8 characters some of which is due to bad memroy. They've taken
+   great pains to make sure it contains correct utf-8 characters.
 
 5. Content-length for HTTP POST request.
 
    TODO: Go through all the existing collector code to see if it *always* uses a
    Content-Length to determine the end of the data.
 
-6. Crash reports can contain instructions on throttling.
+6. Crash reports can contain instructions on throttling when the user
+   submits a crash from ``about:crashes``.
 
    Crash report can contain::
 
@@ -133,16 +153,20 @@ Things to know about the HTTP POST response:
 
 1. The HTTP POST response status code should be HTTP 200 if everything was fine.
 
-2. Content-type for HTTP POST response.
+2. Content-type for HTTP POST response can be anything, but ``text/plain`` is
+   prudent.
 
-   TODO: Figure out whether we return a content-type now and if not, whether we
-   should nix the content-type or whether we should set it to something. Maybe
-   ``text/plain``? Maybe ``application/x-www-form-urlencoded``?
-
-3. HTTP POST response body should look like this::
+3. If the crash report was accepted for processing, the HTTP POST response
+   body will look like this::
 
      CrashID=bp-28a40956-d19e-48ff-a2ee-19a932160525
 
+   Otherwise it'll look like this::
+
+     Discarded=1
+
+
+.. _testing-breakpad-crash-reporting:
 
 Testing breakpad crash reporting
 ================================
@@ -150,36 +174,61 @@ Testing breakpad crash reporting
 When working on Antenna, it helps to be able to send real live crashes to your
 development instance. There are a few options:
 
-1. Use curl:
+1. Use Antenna's tools to send a fake crash:
 
-   http://socorro.readthedocs.io/en/latest/configuring-socorro.html#test-collection-and-processing
+   .. code-block:: bash
 
-2. Use an addon:
+      $ make shell
+      app@c392a11dbfec:/app$ python -m testlib.mini_poster --url [URL]
 
-   https://addons.mozilla.org/en-US/firefox/addon/crash-me-now-simple/
-
-3. Set environment variables:
+2. Use Firefox and set the ``MOZ_CRASHREPORTER_URL`` environment variable:
 
    https://developer.mozilla.org/en-US/docs/Environment_variables_affecting_crash_reporting
 
-   Particularly ``MOZ_CRASHREPORTER_URL``.
 
-4. On Linux, you can crash processes using ``kill``::
+   * (Firefox >= 62) Use ``about:crashparent`` or ``about:crashcontent``.
 
-       kill -ABRT $(pidof firefox)
+   * (Firefox < 62) Then kill the Firefox process using the ``kill`` command.
+
+     1. Run ``ps -aef | grep firefox``. That will list all the
+        Firefox processes.
+
+        Find the process id of the Firefox process you want to kill.
+
+        * main process looks something like ``/usr/bin/firefox``
+        * content process looks something like
+          ``/usr/bin/firefox -contentproc -childID ...``
+
+     2. The ``kill`` command lets you pass a signal to the process. By default, it
+        passes ``SIGTERM`` which will kill the process in a way that doesn't
+        launch the crash reporter.
+
+        You want to kill the process in a way that *does* launch the crash
+        reporter. I've had success with ``SIGABRT`` and ``SIGFPE``. For example:
+
+        * ``kill -SIGABRT <PID>``
+        * ``kill -SIGFPE <PID>``
+
+        What works for you will depend on the operating system and version of
+        Firefox you're using.
 
 
-You can capture a raw HTTP POST this way:
+Capturing an HTTP POST payload for a crash report
+=================================================
 
-1. Run ``nc -l localhost 8000 > http_post.raw`` in one terminal
+The HTTP POST payload for a crash report is sometimes handy to have. You can
+capture it this way:
 
-2. Run ``MOZ_CRASHREPORTER_URL=http://localhost:8000/submit firefox`` in a second terminal
+1. Run ``nc -l localhost 8000 > http_post.raw`` in one terminal.
 
-3. Run ``ps -aef``, find the firefox process id and then do ``kill -ABRT <PID>`` in a
-   third terminal
+2. Run ``MOZ_CRASHREPORTER_URL=http://localhost:8000/submit firefox`` in a
+   second terminal.
 
-4. The Firefox process will crash and the crash report dialog will pop up. Make sure
-   to submit the crash, then click on "Quit Firefox" button
+3. Crash Firefox using one of the methods in
+   :ref:`testing-breakpad-crash-reporting`.
+
+4. The Firefox process will crash and the crash report dialog will pop up.
+   Make sure to submit the crash, then click on "Quit Firefox" button.
 
    That will send the crash to ``nc`` which will pipe it to the file.
 
