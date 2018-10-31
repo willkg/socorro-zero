@@ -4,8 +4,8 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-"""This script shows rough information from Bugzilla and GitHub for a given period
-of time denoted by year and (optionally) quarter.
+"""This script shows rough information from Bugzilla and GitHub for a given
+period of time denoted by year and (optionally) quarter.
 
 This script was never designed. Rather, it started as a single-celled organism
 subjected to heavy doses of gamma radiation. Over time, quarter after quarter,
@@ -57,6 +57,7 @@ To use this:
 
 """
 
+import argparse
 import datetime
 import os
 import sys
@@ -604,31 +605,52 @@ def print_header(text, level=1):
     print('')
 
 
+def roll_to_end_of_month(some_date):
+    month = some_date.month
+    while some_date.month == month:
+        some_date = some_date + datetime.timedelta(days=1)
+    return some_date - datetime.timedelta(days=1)
+
+
 def main(argv):
-    if len(argv) < 1:
-        print(USAGE)
-        print('Error: Must specify year or year and quarter. Examples:')
-        print('in_review.py 2014')
-        print('in_review.py 2014 1')
-        return 1
+    today = datetime.date.today()
+
+    parser = argparse.ArgumentParser(
+        description='Generates review of github and bugzilla for given time.'
+    )
+    parser.add_argument('--year', type=int, default=today.year)
+    parser.add_argument('--quarter', type=int, default=None)
+    parser.add_argument('--month', type=int, default=None)
+
+    args = parser.parse_args()
+
+    year = args.year
+    if args.quarter is not None:
+        if args.quarter == 1:
+            months = [1, 2, 3]
+        elif args.quarter == 2:
+            months = [4, 5, 6]
+        elif args.quarter == 3:
+            months = [7, 8, 9]
+        elif args.quarter == 4:
+            months = [10, 11, 12]
+    elif args.month is not None:
+        months = [args.month]
+    else:
+        months = []
 
     print(HEADER)
 
-    year = int(argv[0])
-    if len(argv) == 1:
+    if not months:
         from_date = datetime.date(year, 1, 1)
         to_date = datetime.date(year, 12, 31)
 
-        print_header('Year %s (%s -> %s)' % (year, from_date, to_date))
-
     else:
-        quarter = int(argv[1])
-        quarter_dates = QUARTERS[quarter]
+        from_date = datetime.date(year, months[0], 1)
+        to_date = datetime.date(year, months[-1], 1)
+        to_date = roll_to_end_of_month(to_date)
 
-        from_date = datetime.date(year, quarter_dates[0][0], quarter_dates[0][1])
-        to_date = datetime.date(year, quarter_dates[1][0], quarter_dates[1][1])
-
-        print_header('Quarter %sq%s (%s -> %s)' % (year, quarter, from_date, to_date))
+    print_header('Period (%s -> %s)' % (from_date, to_date))
 
     print_header('Bugzilla')
     print_bugzilla_stats(from_date, to_date)
