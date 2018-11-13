@@ -14,16 +14,10 @@ Hard requirements:
 
 1. Process crash reports.
 2. Reprocess crash reports.
-3. Save processed crash reports to S3, Postgres and Elasticsearch. [#]_
-4. Run an external stackwalker process and manage the symbols files it requires. [#]_
+3. Save processed crash reports to S3 and Elasticsearch.
+4. Run an external minidump-stackwalker process and manage the symbols files it requires. [#]_
 5. Allow people to adjust signature generation related lists. [#]_
-6. Run cron jobs updating data used by the processor. FIXME: True?
 
-.. [#] Postgres is used for some reports, but I don't think it's used for much
-       else. We might be able to remove it from the mix.
-
-       Further, the plan to move Socorro data to Telemetry might also relieve
-       our needs for Elasticsearch depending on how that all pans out.
 
 .. [#] Maybe we could turn stackwalking into a service, too?
    
@@ -367,7 +361,7 @@ update those, they need to be reprocessed.
 
 
 About reprocessing
-=================
+==================
 
 
 Other architecture things to note

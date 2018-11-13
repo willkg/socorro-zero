@@ -111,13 +111,9 @@ Things to know about the HTTP POST request:
 2. The entire crash report and metadata is in the request body.
 
    Note that some of the information is duplicated in querystring variables to
-   make logging and debugging easier.
+   make logging and debugging easier, but the collector ignores that.
 
 3. HTTP POST request body is multipart/form-data.
-
-4. HTTP POST request body has previously had problems with null bytes and
-   non-utf-8 characters some of which is due to bad memroy. They've taken
-   great pains to make sure it contains correct utf-8 characters.
 
 5. Content-length for HTTP POST request.
 
@@ -140,7 +136,7 @@ Things to know about the HTTP POST request:
 
    Crash report can contain::
 
-     crash_id=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
+     uuid=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 
    We siphon crashes from our prod environment to our dev environment. We want
    these crash reports to end up with the same crash id. Thus it's possible for
@@ -152,6 +148,8 @@ Things to know about the HTTP POST request:
 Things to know about the HTTP POST response:
 
 1. The HTTP POST response status code should be HTTP 200 if everything was fine.
+   Anything else should cause the crash reporter to retry posting the crash
+   report.
 
 2. Content-type for HTTP POST response can be anything, but ``text/plain`` is
    prudent.
@@ -161,9 +159,25 @@ Things to know about the HTTP POST response:
 
      CrashID=bp-28a40956-d19e-48ff-a2ee-19a932160525
 
-   Otherwise it'll look like this::
+   If the crash report was rejected, the HTTP POST response body will look
+   like this::
 
      Discarded=1
+
+
+Some assumptions about crash reports:
+
+1. Crash reports are from a crashed application and may contain junk
+   data. HTTP POST request body has previously had problems with null bytes and
+   non-utf-8 characters some of which is due to bad memory and other issues.
+   The collector removes nulls from keys and values.
+
+2. The crash reporter will attempt to re-send the crash if the crash report
+   doesn't get accepted by the collector and a crash id returned in the
+   response.
+
+3. The crash reporter will hold onto crashes that are rejected by the
+   collector and manage them and delete old crash report data.
 
 
 .. _testing-breakpad-crash-reporting:

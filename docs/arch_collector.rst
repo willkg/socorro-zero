@@ -50,8 +50,8 @@ this mechanism works, this data has the following caveats:
 2. it doesn't differentiate between crash reports that come in compressed vs.
    uncompressed
 
-Further, since I put the metrics in on August 24th, this data only covers a
-couple of days.
+Further, since I put the metrics in on August 24th, 2017, this data only covers
+a couple of days.
 
 ==============  =======
 title           amt
