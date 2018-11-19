@@ -52,9 +52,8 @@ Buildhub
 build information for Firefox, Fennec, Devedition, and Thunderbird.
 
 Buildhub has `documentation for the APIs
-<https://buildhub.readthedocs.io/en/latest/api.html>`_. At the time of this
-writing, I **highly** suggest using the Elasticsearch API as it's much
-faster and performant.
+<https://buildhub.readthedocs.io/en/latest/api.html>`_. Use the Elasticsearch
+API.
 
 
 Build information
@@ -65,35 +64,56 @@ at:
 
 https://archive.mozilla.org/pub/
 
-For example, here's the build file for Firefox 64.0b6 en-US Linux-i686:
-
-https://archive.mozilla.org/pub/firefox/candidates/64.0b6-candidates/build1/linux-i686/en-US/firefox-64.0b6.json
-
-Note how the directory name has "64.0b6", but the ``moz_app_version`` is set to
-"64.0".
-
-With recent builds, there's an additional ``buildhub.json`` file:
-
-https://archive.mozilla.org/pub/firefox/candidates/64.0b6-candidates/build1/linux-i686/en-US/buildhub.json
-
-That includes similar information, but it's probably the case we'd have to do
-less work to infer the important bits.
-
-
 Rough directory structure::
 
   pub/
     firefox/         Firefox builds
-      candidates/    beta builds
+      candidates/    beta, rc, release, and esr builds
       nightly/       nightly builds
-      releases/      release builds; esr builds
 
-    devedition/      Firefox devedition (aka aurora)
-      candidates/    beta builds
+    devedition/      DevEdition (aka Firefox aurora)
+      candidates/    beta builds for Firefox b1 and b2
 
     mobile/          Fennec builds
-      candidates/    beta builds
+      candidates/    beta, rc, and release builds
       nightly/       nightly builds
-      releases/      release builds
 
 
+In the ``candidates/`` subdirectories are build directories like ``build1/``.
+Each of those is a release candidate for that version and the last one is
+the final.
+
+For example, here's the direcotry for Firefox 64.0b4:
+
+https://archive.mozilla.org/pub/firefox/candidates/64.0b4-candidates/
+
+In it are two build directories: ``build1/`` and ``build2/``. The first is
+64.0b4rc1 and was not released to anyone. The second is 64.0b4rc2, but since
+it's the last build in that series, it was released as 64.0b4.
+
+Here's the build file for that for linux-i686 in en-US:
+
+https://archive.mozilla.org/pub/firefox/candidates/64.0b4-candidates/build2/linux-i686/en-US/firefox-64.0b4.json
+
+Note how the directory name has "64.0b4", but the ``moz_app_version`` is set to
+"64.0".
+
+With recent builds, there's an additional ``buildhub.json`` file:
+
+https://archive.mozilla.org/pub/firefox/candidates/64.0b4-candidates/build1/linux-i686/en-US/buildhub.json
+
+That includes similar information, but is built to be ingested in Buildhub.
+
+Things to know:
+
+1. Different platforms may have different build ids for a build. For
+   example, 54.0b5 has build id 20170504103226 for windows and mac builds and
+   20170504173217 for linux builds.
+
+2. As of November 19th, 2018, https://archive.mozilla.org/pub/ appears to be
+   missing some/most build information for versions 45 through 49. Buildhub
+   is missing it, too. However, Socorro's ``product_versions`` tables have
+   this information. I'm not sure how that happened.
+
+3. Firefox beta 1 and beta 2 are released in the DevEdition product in the
+   aurora channel. That's been happening since Firefox 55.
