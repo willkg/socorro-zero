@@ -106,14 +106,20 @@ That includes similar information, but is built to be ingested in Buildhub.
 
 Things to know:
 
-1. Different platforms may have different build ids for a build. For
-   example, 54.0b5 has build id 20170504103226 for windows and mac builds and
-   20170504173217 for linux builds.
+1. In a given product, different platforms can have different build ids for
+   a version. For example, 54.0b5 has build id 20170504103226 for Windows
+   and Mac builds and 20170504173217 for Linux builds.
 
-2. As of November 19th, 2018, https://archive.mozilla.org/pub/ appears to be
-   missing some/most build information for versions 45 through 49. Buildhub
-   is missing it, too. However, Socorro's ``product_versions`` tables have
-   this information. I'm not sure how that happened.
+2. ``https://archive.mozilla.org/pub/*/candidates/`` is periodically purged
+   of old data.  For example, there's a ton of stuff that's missing between
+   Firefox 40 and 49. The builds are still in ``/releases/``, but that doesn't
+   include the ``JSON`` files with build information.
+
+   Socorro has the older data in the ``product_versions`` dumps in Google
+   Drive.
+
+   If that information needs to be reconstituted, Callek might be able to do
+   it.
 
 3. Firefox beta 1 and beta 2 are released in the DevEdition product in the
    aurora channel. That's been happening since Firefox 55.
