@@ -528,7 +528,14 @@ def print_github_stats(from_date, to_date):
                     total_deleted += pr_file.deletions
                     files_changed[pr_file.filename] = files_changed.get(pr_file.filename, 0) + 1
 
+            # Print merged PRs
+            print('    Merged PRs:')
+            print('')
+            for pr in prs:
+                print('    * %s: %s (%s)' % (pr.number, pr.title, str(pr.user)))
+
             # Figure out prs, additions, and deletions per person
+            print('')
             print('    Committers:')
             committers = sorted(committers.items(), key=lambda item: len(item[1]), reverse=True)
             for user_name, committed_prs in committers:
