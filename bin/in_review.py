@@ -305,7 +305,7 @@ class GitHubBrief:
         merged_prs = []
 
         repo = self.client.repository(owner=owner, repository=repo)
-        resp = repo.iter_pulls(state='closed', sort='updated', direction='desc')
+        resp = repo.pull_requests(state='closed', sort='updated', direction='desc')
 
         # We're sorting by "updated", but that could be a comment and not
         # necessarily a merge event, so we fudge this by continuing N past the
@@ -514,7 +514,7 @@ def print_github_stats(from_date, to_date):
                 user_name = str(pr.user)
                 committers.setdefault(user_name, []).append(pr)
 
-                for pr_file in pr.iter_files():
+                for pr_file in pr.files():
                     added, deleted, changed = changes.get(user_name, (0, 0, {}))
                     changed[pr_file.filename] = changed.get(pr_file.filename, 0) + 1
 
