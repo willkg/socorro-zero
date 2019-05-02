@@ -4,8 +4,9 @@
 # License, v. 2.0. If a copy of the MPL was not distributed with this
 # file, You can obtain one at http://mozilla.org/MPL/2.0/.
 
-"""This script shows rough information from Bugzilla and GitHub for a given
-period of time denoted by year and (optionally) quarter.
+"""
+This script shows rough information from Bugzilla and GitHub for a given period
+of time denoted by year and (optionally) quarter.
 
 This script was never designed. Rather, it started as a single-celled organism
 subjected to heavy doses of gamma radiation. Over time, quarter after quarter,
@@ -62,6 +63,7 @@ import datetime
 import os
 import sys
 import textwrap
+import time
 
 
 try:
@@ -76,24 +78,24 @@ except ImportError as ie:
 BUGZILLA_API_URL = 'https://bugzilla.mozilla.org/rest/'
 BUGZILLA_PRODUCTS = [
     # product, list of components (use - to remove a component)
-    ('Socorro', ['-Tecken Integration'])
+    # ('Socorro', ['-Tecken Integration'])
+    ('Socorro', [])
 ]
 
 GITHUB_REPOS = [
+    # OWNER, REPO, use_issues?
+
     # Main Socorro repository
-    ('mozilla-services', 'socorro'),
+    ('mozilla-services', 'socorro', False),
 
-    # New Socorro collector
-    ('mozilla-services', 'antenna'),
-
-    # Pigeon
-    ('mozilla-services', 'socorro-pigeon'),
+    # Socorro collector
+    ('mozilla-services', 'antenna', False),
 
     # Symbols server
-    # ('mozilla-services', 'tecken'),
+    ('mozilla-services', 'tecken', True),
 
-    # New Socorro processor
-    # ('mozilla-services', 'jansky'),
+    # Buildhub2
+    ('mozilla-services', 'buildhub2', True),
 ]
 
 QUARTERS = {
@@ -146,11 +148,11 @@ def truncate(text, length):
 
 class BugzillaBrief(bugzilla.Bugzilla):
     def get_history(self, bugid):
-        """Retrieves the history for a bug"""
+        """Retrieves the history for a bug."""
         return self._get('bug/{bugid}/history'.format(bugid=bugid))
 
     def get_bugs_created(self, products, from_date, to_date):
-        """Retrieves summary of all bugs created between two dates for a given product
+        """Retrieves summary of all bugs created between two dates for a given product.
 
         :arg list products: products and components to look at
         :arg from_date: greater than or equal to this date
@@ -298,6 +300,56 @@ class GitHubBrief:
             code = input('Enter 2fa: ').strip()
         return code
 
+    def closed_issues(self, owner, repo, from_date, to_date):
+        from_date = dt_to_str(from_date)
+        to_date = dt_to_str(to_date)
+
+        closed_issues = []
+
+        repo = self.client.repository(owner=owner, repository=repo)
+        resp = repo.issues(state='closed', sort='updated', direction='desc')
+
+        # We're sorting by "updated", but that could be a comment and not
+        # necessarily a close event, so we fudge this by continuing N past the
+        # from_date
+        N = 20
+        past_from_date = 0
+
+        for issue in resp:
+            closed_at = issue.closed_at
+            if not closed_at:
+                continue
+
+            if dt_to_str(closed_at) > to_date:
+                # Outside the range, so continue
+                continue
+
+            if dt_to_str(closed_at) < from_date:
+                # Outside the range, but since issues are ordered by updated
+                # descending, we continue another N past the from_date and then
+                # break
+                if past_from_date > N:
+                    break
+                past_from_date += 1
+                continue
+
+            if issue.pull_request_urls:
+                # Sometimes issues also gets back pull requests
+                continue
+
+            # Drop any INVALID/WONTFIX resolutions
+            was_wontfix = [
+                label for label in issue.original_labels
+                if label.name.lower() in ('wontfix', 'invalid')
+            ]
+            if was_wontfix:
+                print('wontfix/invalid %s' % issue.number)
+                continue
+
+            closed_issues.append(issue)
+
+        return closed_issues
+
     def merged_pull_requests(self, owner, repo, from_date, to_date):
         from_date = dt_to_str(from_date)
         to_date = dt_to_str(to_date)
@@ -331,9 +383,7 @@ class GitHubBrief:
 
             merged_prs.append(pr)
 
-        return {
-            'prs': merged_prs
-        }
+        return merged_prs
 
 
 def statistics(ages_items):
@@ -479,6 +529,106 @@ def get_github_auth():
     return None
 
 
+def print_github_issues_stats(issues):
+    print('    Closed issues: %s' % len(issues))
+    print('')
+    for issue in issues:
+        assignees = issue.assignees or []
+        assignees = [str(assignee) for assignee in assignees]
+        for assignee in assignees:
+            all_people.add(assignee)
+        assignees = ('(' + ', '.join(assignees) + ')') if assignees else ''
+        print('    * %s: %s %s' % (issue.number, issue.title, assignees))
+
+
+def print_github_prs_stats(prs):
+    # Person -> pull requests
+    committers = {}
+
+    # Person -> (# inserted, # deleted)
+    changes = {}
+
+    # These are total line counts
+    total_added = total_deleted = 0
+
+    # This is the dict of all files that changed to number of times they
+    # changed
+    files_changed = {}
+
+    for pr in prs:
+        user_name = str(pr.user)
+        committers.setdefault(user_name, []).append(pr)
+
+        for pr_file in pr.files():
+            added, deleted, changed = changes.get(user_name, (0, 0, {}))
+            changed[pr_file.filename] = changed.get(pr_file.filename, 0) + 1
+
+            changes[user_name] = (
+                added + pr_file.additions,
+                deleted + pr_file.deletions,
+                changed
+            )
+
+            total_added += pr_file.additions
+            total_deleted += pr_file.deletions
+            files_changed[pr_file.filename] = files_changed.get(pr_file.filename, 0) + 1
+        time.sleep(1)
+
+    # Print merged PRs
+    print('')
+    print('    Merged PRs: %s' % len(prs))
+    print('')
+    for pr in prs:
+        print('    * %s: %s (%s)' % (pr.number, pr.title, str(pr.user)))
+
+    # Figure out prs, additions, and deletions per person
+    print('')
+    print('    Committers:')
+    committers = sorted(committers.items(), key=lambda item: len(item[1]), reverse=True)
+    for user_name, committed_prs in committers:
+        print(' %20s : %5s  (%6s, %6s, %4s files)' % (
+            user_name[:15],
+            len(committed_prs),
+            '+' + str(changes[user_name][0]),
+            '-' + str(changes[user_name][1]),
+            str(len(changes[user_name][2]))
+        ))
+        all_people.add(user_name)
+
+    print('')
+    print('                Total :        (%6s, %6s, %4s files)' % (
+        '+' + str(total_added),
+        '-' + str(total_deleted),
+        str(len(files_changed))
+    ))
+
+    print('')
+    print('    Most changed files:')
+    most_changed_files = sorted(files_changed.items(), key=lambda item: item[1], reverse=True)
+    for fn, count in most_changed_files[:10]:
+        print('      %s (%d)' % (fn, count))
+
+    print('')
+    print('    Age stats:')
+    stats = statistics([
+        ((pr.merged_at - pr.created_at).days, pr)
+        for pr in prs
+    ])
+    print('          Youngest PR : %-2.1fd: %s: %s' % (
+        stats['min'][0],
+        stats['min'][1].number,
+        truncate(stats['min'][1].title, 50)
+    ))
+    print('       Average PR age : %-2.1fd' % stats['average'])
+    print('        Median PR age : %-2.1fd' % stats['median'])
+    print('            Oldest PR : %-2.1fd: %s: %s' % (
+        stats['max'][0],
+        stats['max'][1].number,
+        truncate(stats['max'][1].title, 50)
+    ))
+    print('')
+
+
 def print_github_stats(from_date, to_date):
     auth = get_github_auth()
     if auth:
@@ -486,106 +636,31 @@ def print_github_stats(from_date, to_date):
     else:
         github_brief = GitHubBrief()
 
+    closed_issues = {}
     merged_prs = {}
-    for owner, repo in GITHUB_REPOS:
-        merged_prs[(owner, repo)] = github_brief.merged_pull_requests(
-            owner, repo, from_date, to_date
-        )
+    for owner, repo, use_issues in GITHUB_REPOS:
+        key = (owner, repo)
+        print('  %s/%s:' % key)
+        if use_issues:
+            issues = github_brief.closed_issues(owner, repo, from_date, to_date)
+            closed_issues[key] = issues
+            if issues:
+                print_github_issues_stats(issues)
 
-    for key, prs in sorted(merged_prs.items()):
-        # Person -> pull requests
-        committers = {}
-
-        # Person -> (# inserted, # deleted)
-        changes = {}
-
-        # These are total line counts
-        total_added = total_deleted = 0
-
-        # This is the dict of all files that changed to number of times they
-        # changed
-        files_changed = {}
-
-        prs = prs['prs']
-        print('  %s: %s prs' % ('%s/%s' % key, len(prs)))
-        print('')
+        prs = github_brief.merged_pull_requests(owner, repo, from_date, to_date)
+        merged_prs[key] = prs
         if prs:
-            for pr in prs:
-                user_name = str(pr.user)
-                committers.setdefault(user_name, []).append(pr)
-
-                for pr_file in pr.files():
-                    added, deleted, changed = changes.get(user_name, (0, 0, {}))
-                    changed[pr_file.filename] = changed.get(pr_file.filename, 0) + 1
-
-                    changes[user_name] = (
-                        added + pr_file.additions,
-                        deleted + pr_file.deletions,
-                        changed
-                    )
-
-                    total_added += pr_file.additions
-                    total_deleted += pr_file.deletions
-                    files_changed[pr_file.filename] = files_changed.get(pr_file.filename, 0) + 1
-
-            # Print merged PRs
-            print('    Merged PRs:')
-            print('')
-            for pr in prs:
-                print('    * %s: %s (%s)' % (pr.number, pr.title, str(pr.user)))
-
-            # Figure out prs, additions, and deletions per person
-            print('')
-            print('    Committers:')
-            committers = sorted(committers.items(), key=lambda item: len(item[1]), reverse=True)
-            for user_name, committed_prs in committers:
-                print(' %20s : %5s  (%6s, %6s, %4s files)' % (
-                    user_name,
-                    len(committed_prs),
-                    '+' + str(changes[user_name][0]),
-                    '-' + str(changes[user_name][1]),
-                    str(len(changes[user_name][2]))
-                ))
-                all_people.add(user_name)
-
-            print('')
-            print('                Total :        (%6s, %6s, %4s files)' % (
-                '+' + str(total_added),
-                '-' + str(total_deleted),
-                str(len(files_changed))
-            ))
-
-            print('')
-            print('    Most changed files:')
-            most_changed_files = sorted(files_changed.items(), key=lambda item: item[1], reverse=True)
-            for fn, count in most_changed_files[:10]:
-                print('      %s (%d)' % (fn, count))
-
-            print('')
-            print('    Age stats:')
-            stats = statistics([
-                ((pr.merged_at - pr.created_at).days, pr)
-                for pr in prs
-            ])
-            print('          Youngest PR : %-2.1fd: %s: %s' % (
-                stats['min'][0],
-                stats['min'][1].number,
-                truncate(stats['min'][1].title, 50)
-            ))
-            print('       Average PR age : %-2.1fd' % stats['average'])
-            print('        Median PR age : %-2.1fd' % stats['median'])
-            print('            Oldest PR : %-2.1fd: %s: %s' % (
-                stats['max'][0],
-                stats['max'][1].number,
-                truncate(stats['max'][1].title, 50)
-            ))
-
-        print('')
+            print_github_prs_stats(prs)
 
     print('')
     print('  All repositories:')
     print('')
-    print('    Total merged PRs: %s' % sum(len(prs['prs']) for prs in merged_prs.values()))
+    print('    Total closed issues: %s' % (
+        sum(len(issues) for issues in closed_issues.values())
+    ))
+    print('    Total merged PRs: %s' % (
+        sum(len(prs) for prs in merged_prs.values())
+    ))
     print('')
 
 
