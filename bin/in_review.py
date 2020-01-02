@@ -78,8 +78,9 @@ except ImportError as ie:
 BUGZILLA_API_URL = 'https://bugzilla.mozilla.org/rest/'
 BUGZILLA_PRODUCTS = [
     # product, list of components (use - to remove a component)
-    # ('Socorro', ['-Tecken Integration'])
-    ('Socorro', [])
+    # example: ('Socorro', ['-Tecken Integration'])
+    ('Socorro', []),
+    ('Location', []),
 ]
 
 GITHUB_REPOS = [
@@ -94,8 +95,8 @@ GITHUB_REPOS = [
     # Symbols server
     ('mozilla-services', 'tecken', True),
 
-    # Buildhub2
-    ('mozilla-services', 'buildhub2', True),
+    # Ichnaea
+    ('mozilla', 'ichnaea', True),
 ]
 
 QUARTERS = {
@@ -105,7 +106,6 @@ QUARTERS = {
     4: [(10, 1), (12, 31)]
 }
 
-USAGE = 'Usage: in_review.py <YEAR> [<QUARTER>]'
 HEADER = 'in_review.py: find out what happened year or quarter!'
 
 
@@ -299,6 +299,10 @@ class GitHubBrief:
         while not code:
             code = input('Enter 2fa: ').strip()
         return code
+
+    def opened_issues(self, owner, repo, from_date, to_date):
+        # FIXME(willkg): write this
+        pass
 
     def closed_issues(self, owner, repo, from_date, to_date):
         from_date = dt_to_str(from_date)
@@ -530,15 +534,21 @@ def get_github_auth():
 
 
 def print_github_issues_stats(issues):
+    # FIXME(willkg): Print open issue count
+    # FIXME(willkg): Print open person: count
+
     print('    Closed issues: %s' % len(issues))
-    print('')
+    resolvers = {}
     for issue in issues:
         assignees = issue.assignees or []
         assignees = [str(assignee) for assignee in assignees]
         for assignee in assignees:
-            all_people.add(assignee)
-        assignees = ('(' + ', '.join(assignees) + ')') if assignees else ''
-        print('    * %s: %s %s' % (issue.number, issue.title, assignees))
+            resolvers[assignee] = resolvers.setdefault(assignee, 0) + 1
+
+    resolvers = sorted(resolvers.items(), reverse=True, key=lambda item: item[1])
+    for person, count in resolvers:
+        print('   %34s : %s' % (person[:30], count))
+        all_people.add(person)
 
 
 def print_github_prs_stats(prs):
@@ -626,7 +636,6 @@ def print_github_prs_stats(prs):
         stats['max'][1].number,
         truncate(stats['max'][1].title, 50)
     ))
-    print('')
 
 
 def print_github_stats(from_date, to_date):
@@ -651,6 +660,8 @@ def print_github_stats(from_date, to_date):
         merged_prs[key] = prs
         if prs:
             print_github_prs_stats(prs)
+
+        print('')
 
     print('')
     print('  All repositories:')
