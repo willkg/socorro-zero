@@ -4,6 +4,7 @@ docs/_build/
 
 /antenna*
 /socorro*
+/crashstats-tools
 /jansky/
 /cloudops-deployment/
 /archive/
